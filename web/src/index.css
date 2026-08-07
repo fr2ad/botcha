@@ -1,0 +1,153 @@
+:root {
+  --page-bg: #0a0a12;
+  --screen-bg: #14162a;
+  --pill-bg: #1f2240;
+  --accent: #7c5cff;
+  --accent-soft: rgba(124, 92, 255, 0.16);
+  --text-1: #eef0ff;
+  --text-2: #c5c8dd;
+  --text-3: #b8bccb;
+  --text-4: #8f94b3;
+  --text-5: #7d84a8;
+  --text-6: #565a72;
+  --border: #262838;
+  --green: #38d97a;
+  --pink: #ff5c8a;
+  --blue: #3d9dff;
+  --amber: #ffcf3d;
+  --font-head: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  background: var(--page-bg);
+}
+
+.screen {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  background: var(--screen-bg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 0 20px;
+}
+
+.pill {
+  border-radius: 999px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-family: var(--font-head);
+  font-size: 15px;
+  padding: 14px 0;
+  border-radius: 999px;
+  border: none;
+  text-align: center;
+  width: 100%;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: 999px;
+  background: transparent;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--pill-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: var(--text-2);
+  font-size: 16px;
+}
+
+.topnav {
+  display: flex;
+  align-items: center;
+  padding: 20px 0 6px;
+  position: relative;
+}
+
+.topnav .back {
+  position: absolute;
+  left: 0;
+}
+
+.topnav .title {
+  margin: 0 auto;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+@keyframes spin-fade {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+.loading-dot {
+  animation: spin-fade 1.2s ease infinite;
+}
