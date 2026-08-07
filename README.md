@@ -30,7 +30,7 @@ npm run dev
 
 Open `http://localhost:5173`, sign up with a nickname, and open a **second and third browser tab/window** (or ask two friends) to fill the other two human seats — a room needs 3 humans + 1 bot to start. Each browser tab is tracked by a `botcha_player_id` in `localStorage`, so incognito windows or separate browsers work well for testing solo.
 
-Without an `OPENROUTER_API_KEY`, the bot uses canned mock replies (still passes turns, still gets guessed on) so you can play the full loop with zero external dependencies. To wire a real model, copy `server/.env.example` to `server/.env` and set `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MODEL` — default is a cheap Llama 3.1 8B).
+Without an `OPENROUTER_API_KEY`, the bot uses canned mock replies (still passes turns, still gets guessed on) so you can play the full loop with zero external dependencies. To wire a real model, copy `server/.env.example` to `server/.env` and set `OPENROUTER_API_KEY`. The default `OPENROUTER_MODEL` is a $0-cost OpenRouter model (`inclusionai/ling-3.0-tiny:free`) — see the comment in `.env.example` for why that specific one and why it's worth double-checking before relying on it long-term; OpenRouter's free catalog is small and shifts often.
 
 ## What's real vs. stubbed
 

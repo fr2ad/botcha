@@ -26,5 +26,7 @@ export const SEAT_CODE_NAMES: Array<{ name: string; color: string }> = [
 export const AVATAR_POOL = ['🦝', '🐑', '🐺', '🦄', '🦉', '🐴', '🐼', '🦔', '🐨', '🐱', '🐶', '🦊'];
 
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? '';
-export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'meta-llama/llama-3.1-8b-instruct';
+// Default matches server/.env.example — see the comment there on why this
+// specific free model, and why it's worth re-checking before relying on it.
+export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'inclusionai/ling-3.0-tiny:free';
 export const PORT = Number(process.env.PORT ?? 8787);
