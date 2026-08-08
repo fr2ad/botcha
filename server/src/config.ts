@@ -3,7 +3,7 @@ export const CONFIG = {
   seatsPerRoom: 4,
   botsPerRoom: 1,
   tableRounds: 3,
-  turnWindowMs: 15_000,
+  turnWindowMs: 20_000,
   maxMessageLength: 200,
   guessWindowMs: 20_000,
   dailyHearts: 5,

@@ -44,7 +44,10 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
   const messages = [
     { role: 'system', content: persona.systemPrompt },
     ...history.map((h) => ({ role: 'user' as const, content: `${h.speaker}: ${h.text}` })),
-    { role: 'user', content: `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars.)` }
+    {
+      role: 'user',
+      content: `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. React to something specific someone actually said — don't just say "lol" or another one-word filler.)`
+    }
   ];
 
   const controller = new AbortController();
@@ -61,7 +64,9 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
         model: OPENROUTER_MODEL,
         messages,
         max_tokens: 80,
-        temperature: 0.9
+        temperature: 1,
+        frequency_penalty: 0.7,
+        presence_penalty: 0.5
       }),
       signal: controller.signal
     });

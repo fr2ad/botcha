@@ -4,20 +4,42 @@ import { useGame } from '../GameContext';
 import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
 
-const TURN_WINDOW_MS = 15_000;
+const TURN_WINDOW_MS = 20_000;
 const MAX_LEN = 200;
 const POSITIONS: Array<{ top?: number | string; bottom?: number | string; left?: number | string; right?: number | string; transform: string }> = [
-  { top: 0, transform: 'translateX(-50%)' },
+  { top: 0, left: '50%', transform: 'translateX(-50%)' },
   { top: '50%', right: 0, transform: 'translateY(-50%)' },
-  { bottom: 0, transform: 'translateX(-50%)' },
+  { bottom: 0, left: '50%', transform: 'translateX(-50%)' },
   { top: '50%', left: 0, transform: 'translateY(-50%)' }
 ];
+
+function mentionToken(codeName: string) {
+  return '@' + codeName.replace(/\s+/g, '');
+}
+
+// Mentioning a seat is just a text convenience for readability — it does not
+// change turn order or obligate that seat to reply (chat stays turn-based, see ADR-0001).
+function renderWithMentions(text: string, roster: { codeName: string }[]) {
+  const tokens = roster.map((s) => mentionToken(s.codeName)).filter(Boolean);
+  if (tokens.length === 0) return text;
+  const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return text.split(pattern).map((part, i) =>
+    tokens.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
+      <span key={i} style={{ color: 'var(--accent)', fontWeight: 700 }}>
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
 
 export function Table() {
   const navigate = useNavigate();
   const { state, sendTurnMessage } = useGame();
   const [draft, setDraft] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state.phase === 'guess') navigate('/guess');
@@ -39,6 +61,12 @@ export function Table() {
     if (!draft.trim() || !isMyTurn) return;
     sendTurnMessage(draft.trim());
     setDraft('');
+  }
+
+  function mention(codeName: string) {
+    if (!isMyTurn) return;
+    setDraft((d) => (d.trim() ? `${d.trim()} ${mentionToken(codeName)} ` : `${mentionToken(codeName)} `));
+    inputRef.current?.focus();
   }
 
   return (
@@ -90,7 +118,11 @@ export function Table() {
                   <SeatAvatar letter={seat.avatar} color={seat.color} size={44} />
                 </div>
               )}
-              <div style={{ fontSize: 11, fontWeight: 600 }}>
+              <div
+                onClick={() => mention(seat.codeName)}
+                style={{ fontSize: 11, fontWeight: 600, cursor: isMyTurn ? 'pointer' : 'default' }}
+                title={isMyTurn ? `Mention ${seat.codeName} — doesn't force a reply` : undefined}
+              >
                 {seat.codeName}
                 {seat.seatIndex === state.mySeatIndex ? ' (you)' : ''}
               </div>
@@ -115,7 +147,7 @@ export function Table() {
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600 }}>{seat?.codeName}</div>
-                <div style={{ fontSize: 12.5, color: '#cfd2e0' }}>{m.text}</div>
+                <div style={{ fontSize: 12.5, color: '#cfd2e0' }}>{renderWithMentions(m.text, state.roster)}</div>
               </div>
             </div>
           );
@@ -136,6 +168,7 @@ export function Table() {
         }}
       >
         <input
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
           onKeyDown={(e) => e.key === 'Enter' && submit()}

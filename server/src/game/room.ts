@@ -160,6 +160,11 @@ export class Room {
       }
     }
 
+    // Grace pause so the last chat message is visible before the screen
+    // switches to the guess phase (was flipping mid-render, see bug report).
+    await sleep(2500);
+    if (this.cancelled) return;
+
     await this.runGuessPhase();
     if (this.cancelled) return;
     await this.runReveal();
