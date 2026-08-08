@@ -31,7 +31,10 @@ function sanitize(text: string): string {
     if (re.test(out)) return MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
   }
   if (out.length > CONFIG.maxMessageLength) out = out.slice(0, CONFIG.maxMessageLength - 1) + '…';
-  return out || 'lol';
+  // Empty content (model returned nothing, e.g. reasoning ate the whole
+  // budget) used to fall back to a hardcoded 'lol' — that's why the bot
+  // seemed to always say it. Pick a varied mock line instead.
+  return out || MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
 }
 
 export async function getBotReply(persona: Persona, history: ChatTurn[], round: number): Promise<string> {
@@ -63,7 +66,11 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
         messages,
-        max_tokens: 80,
+        // This model is a reasoner: it spends tokens on a hidden "reasoning"
+        // field before the reply. Capping reasoning + leaving room after it
+        // is why replies were coming back empty (-> sanitize's 'lol' fallback).
+        max_tokens: 200,
+        reasoning: { max_tokens: 40 },
         temperature: 1,
         frequency_penalty: 0.7,
         presence_penalty: 0.5
