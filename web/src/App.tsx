@@ -11,6 +11,7 @@ import { Guess } from './screens/Guess';
 import { Reveal } from './screens/Reveal';
 import { Result } from './screens/Result';
 import { Leaderboard } from './screens/Leaderboard';
+import { BotTest } from './screens/BotTest';
 
 function Boot({ children }: { children: React.ReactNode }) {
   const { resumeSession } = useGame();
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/reveal" element={loggedIn ? <Reveal /> : <Navigate to="/" replace />} />
       <Route path="/result" element={loggedIn ? <Result /> : <Navigate to="/" replace />} />
       <Route path="/leaderboard" element={loggedIn ? <Leaderboard /> : <Navigate to="/" replace />} />
+      <Route path="/bot-test" element={<BotTest />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

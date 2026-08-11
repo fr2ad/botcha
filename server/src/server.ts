@@ -5,6 +5,7 @@ import { PORT } from './config.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerLeaderboardRoutes } from './routes/leaderboard.js';
 import { registerWsRoute } from './routes/ws.js';
+import { registerBotTestRoutes } from './routes/bot-test.js';
 import './db/index.js'; // ensure schema is created on boot
 
 const app = Fastify({ logger: true });
@@ -15,6 +16,7 @@ await app.register(websocket);
 registerAuthRoutes(app);
 registerLeaderboardRoutes(app);
 registerWsRoute(app);
+registerBotTestRoutes(app);
 
 app.get('/api/health', async () => ({ ok: true }));
 

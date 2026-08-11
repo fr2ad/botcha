@@ -29,6 +29,13 @@ export function fetchLeaderboard() {
   return req<{ players: LeaderboardEntry[] }>('/api/leaderboard');
 }
 
+export function botTestReply(history: { speaker: string; text: string }[]) {
+  return req<{ reply: string; persona: string }>('/api/bot-test/reply', {
+    method: 'POST',
+    body: JSON.stringify({ history })
+  });
+}
+
 export function wsUrl(playerId: string) {
   const base = API_BASE || window.location.origin;
   const url = new URL(base);
