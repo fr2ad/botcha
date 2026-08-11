@@ -150,25 +150,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const wsRef = useRef<WebSocket | null>(null);
   const outboxRef = useRef<unknown[]>([]);
+  const intentionalCloseRef = useRef(false);
 
   const connect = useCallback((playerId: string) => {
-    const ws = new WebSocket(wsUrl(playerId));
-    wsRef.current = ws;
-    ws.onopen = () => {
-      for (const msg of outboxRef.current) ws.send(JSON.stringify(msg));
-      outboxRef.current = [];
+    intentionalCloseRef.current = false;
+    const open = () => {
+      const ws = new WebSocket(wsUrl(playerId));
+      wsRef.current = ws;
+      ws.onopen = () => {
+        for (const msg of outboxRef.current) ws.send(JSON.stringify(msg));
+        outboxRef.current = [];
+      };
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          dispatch(msg);
+        } catch {
+          // ignore malformed frames
+        }
+      };
+      ws.onclose = () => {
+        wsRef.current = null;
+        // Server restart / network blip — reconnect so a stuck "Finding
+        // humans..." screen doesn't silently strand the player forever.
+        if (!intentionalCloseRef.current) setTimeout(open, 1500);
+      };
     };
-    ws.onmessage = (evt) => {
-      try {
-        const msg = JSON.parse(evt.data);
-        dispatch(msg);
-      } catch {
-        // ignore malformed frames
-      }
-    };
-    ws.onclose = () => {
-      wsRef.current = null;
-    };
+    open();
   }, []);
 
   const login = useCallback(
@@ -250,6 +258,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return () => {
+      intentionalCloseRef.current = true;
       wsRef.current?.close();
     };
   }, []);
