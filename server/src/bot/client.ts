@@ -66,10 +66,13 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
         messages,
-        // This model is a reasoner: it spends tokens on a hidden "reasoning"
-        // field before the reply. Capping reasoning + leaving room after it
-        // is why replies were coming back empty (-> sanitize's 'lol' fallback).
-        max_tokens: 200,
+        // This model is a reasoner and the free-tier route ignores
+        // reasoning.max_tokens (verified: burns 150-350+ tokens on hidden
+        // "reasoning" regardless of the cap). A tight max_tokens starves the
+        // actual reply -> content comes back null -> sanitize's mock
+        // fallback, which looked like the bot never using AI at all. Give
+        // it real headroom instead of trying to cap reasoning.
+        max_tokens: 500,
         reasoning: { max_tokens: 40 },
         temperature: 1,
         frequency_penalty: 0.7,
