@@ -45,10 +45,35 @@ Live at `botcha.far2ad.space`, on a NAT VPS (Ubuntu 24.04, `root@<vps-host> -p <
 **Why NAT/HAProxy, not a normal reverse proxy setup:** this VPS shares its public IPv4 with other tenants — no port 80/443 of your own, only a private IP (`<private-ip>`) behind the provider's NAT. the provider's dashboard has a built-in **HAProxy** panel (separate from the VPS page) that terminates public 80/443 + TLS and forwards to your VPS's private IP. `botcha.far2ad.space` is already registered there → backend `<private-ip>:80`. Don't try port-forwarding or Cloudflare Tunnel instead — HAProxy panel is the supported path here and already wired up.
 
 Server layout:
-- `/opt/botcha` — this repo's `botcha/` dir, git-cloned from `https://github.com/fr2ad/botcha` (origin `main`)
+- `/opt/botcha` — this repo's `botcha/` dir, git-cloned from `https://github.com/fr2ad/botcha` (private repo, origin `main`)
 - `/opt/botcha/server` — backend, run via `systemd` unit `botcha.service` (`ExecStart=npx tsx --env-file-if-exists=.env src/server.ts`, port 8787, `.env` holds `OPENROUTER_API_KEY`)
 - `/opt/botcha/web/dist` — frontend static build, served directly by nginx
 - `/etc/nginx/sites-available/botcha.far2ad.space` — nginx vhost: serves `web/dist` at `/`, proxies `/api/` and `/ws` to `localhost:8787`
+
+### One-time box setup (already done, for reference)
+
+The repo is **private**, so the VPS pulls over SSH with a read-only deploy key, not HTTPS:
+
+```bash
+# on the box: generate a dedicated keypair, no passphrase
+ssh-keygen -t ed25519 -N "" -C "botcha-deploy@far2ad.space" -f /root/.ssh/botcha_deploy_key
+cat /root/.ssh/botcha_deploy_key.pub   # add as a Deploy Key (read-only) on the GitHub repo:
+# gh repo deploy-key add --repo fr2ad/botcha --title botcha-vps-readonly - <<< "<pubkey>"
+
+ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts
+
+cat >> /root/.ssh/config <<'EOF'
+Host github-botcha
+  HostName github.com
+  User git
+  IdentityFile /root/.ssh/botcha_deploy_key
+  IdentitiesOnly yes
+EOF
+chmod 600 /root/.ssh/config
+
+cd /opt/botcha && git remote set-url origin git@github-botcha:fr2ad/botcha.git
+git config --global --add safe.directory /opt/botcha   # dir is owned by uid 501 (from an old rsync), not root
+```
 
 ### Updating the server
 
@@ -58,20 +83,32 @@ From your machine, in this repo: commit, push to `main`, then pull + rebuild on 
 # 1. push
 git push origin main
 
-# 2. pull + backend: reinstall deps if package.json changed, then restart
-ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha && git reset --hard origin/main && git pull && \
-  cd server && npm install && systemctl restart botcha && systemctl status botcha --no-pager'
+# 2. pull on the box (fast-forward only — working tree there should always be clean)
+ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha && git merge --ff-only origin/main && git log --oneline -1'
 
-# 3. frontend: rebuild and fix perms (dist/ needs to stay readable by nginx)
+# 3. backend: only if server/ changed — reinstall deps, restart, confirm it's up
+ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha/server && npm install && systemctl restart botcha && systemctl status botcha --no-pager'
+
+# 4. frontend: only if web/ changed — rebuild and fix perms (dist/ needs to stay readable by nginx)
 ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha/web && npm install && npm run build && \
   find dist -type d -exec chmod 755 {} \; && find dist -type f -exec chmod 644 {} \;'
 ```
+
+Skip step 3 for web-only changes and step 4 for server-only changes — no need to restart/rebuild the half that didn't change.
 
 `server/.env`, `server/*.db`, `node_modules/`, and `dist/` are all gitignored, so pulling never touches them.
 
 nginx config itself rarely changes; if it does, edit `/etc/nginx/sites-available/botcha.far2ad.space` on the box, then `nginx -t && systemctl reload nginx`.
 
 Logs: `journalctl -u botcha -f` (backend), `/var/log/nginx/error.log` (nginx/static).
+
+### Verifying a deploy
+
+```bash
+curl -s https://botcha.far2ad.space/ | head -1                 # nginx + static serving up
+ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha && git log --oneline -1'   # box is on the commit you expect
+```
+Then open `https://botcha.far2ad.space/#/home` in a browser and click through the flow that changed.
 
 ### `recipe.far2ad.space`
 
