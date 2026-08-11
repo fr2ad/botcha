@@ -38,6 +38,45 @@ Real: matchmaking queue, turn-based chat state machine (3 rounds × 15s turns), 
 
 Stubbed for MVP (per `docs/SPEC.md` §9 — deliberately out of scope, not forgotten): real Google OAuth, payment gateway (coin purchase / Premium), 7/10-seat rooms, Expert difficulty, Pin Question, private rooms.
 
+## Deployment
+
+Live at `botcha.far2ad.space`, on a NAT VPS (Ubuntu 24.04, `root@<vps-host> -p <ssh-port>`).
+
+**Why NAT/HAProxy, not a normal reverse proxy setup:** this VPS shares its public IPv4 with other tenants — no port 80/443 of your own, only a private IP (`<private-ip>`) behind the provider's NAT. the provider's dashboard has a built-in **HAProxy** panel (separate from the VPS page) that terminates public 80/443 + TLS and forwards to your VPS's private IP. `botcha.far2ad.space` is already registered there → backend `<private-ip>:80`. Don't try port-forwarding or Cloudflare Tunnel instead — HAProxy panel is the supported path here and already wired up.
+
+Server layout:
+- `/opt/botcha` — this repo's `botcha/` dir, git-cloned from `https://github.com/fr2ad/botcha` (origin `main`)
+- `/opt/botcha/server` — backend, run via `systemd` unit `botcha.service` (`ExecStart=npx tsx --env-file-if-exists=.env src/server.ts`, port 8787, `.env` holds `OPENROUTER_API_KEY`)
+- `/opt/botcha/web/dist` — frontend static build, served directly by nginx
+- `/etc/nginx/sites-available/botcha.far2ad.space` — nginx vhost: serves `web/dist` at `/`, proxies `/api/` and `/ws` to `localhost:8787`
+
+### Updating the server
+
+From your machine, in this repo: commit, push to `main`, then pull + rebuild on the box.
+
+```bash
+# 1. push
+git push origin main
+
+# 2. pull + backend: reinstall deps if package.json changed, then restart
+ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha && git reset --hard origin/main && git pull && \
+  cd server && npm install && systemctl restart botcha && systemctl status botcha --no-pager'
+
+# 3. frontend: rebuild and fix perms (dist/ needs to stay readable by nginx)
+ssh -p <ssh-port> root@<vps-host> 'cd /opt/botcha/web && npm install && npm run build && \
+  find dist -type d -exec chmod 755 {} \; && find dist -type f -exec chmod 644 {} \;'
+```
+
+`server/.env`, `server/*.db`, `node_modules/`, and `dist/` are all gitignored, so pulling never touches them.
+
+nginx config itself rarely changes; if it does, edit `/etc/nginx/sites-available/botcha.far2ad.space` on the box, then `nginx -t && systemctl reload nginx`.
+
+Logs: `journalctl -u botcha -f` (backend), `/var/log/nginx/error.log` (nginx/static).
+
+### `recipe.far2ad.space`
+
+Not deployed yet — currently a Cloudflare Worker at `recipe-transcriber.<account>.workers.dev`, planned move to this same box (static files served by nginx, same HAProxy pattern as above).
+
 ## Notes on the backend
 
 - Uses Node 22's built-in `node:sqlite` instead of `better-sqlite3` — zero native build step, which matters for a single cheap VPS with no guaranteed compiler toolchain. It's still an experimental Node API; revisit if that becomes a problem.

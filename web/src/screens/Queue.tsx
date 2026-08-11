@@ -29,7 +29,7 @@ export function Queue() {
     navigate('/home');
   }
 
-  const slots = Array.from({ length: 3 }, (_, i) => i < state.queueSize);
+  const slots = Array.from({ length: 3 }, (_, i) => i < state.queueSize - 1);
 
   return (
     <div className="screen" style={{ paddingBottom: 22 }}>

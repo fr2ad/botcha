@@ -149,10 +149,15 @@ const STORAGE_KEY = 'botcha_player_id';
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const wsRef = useRef<WebSocket | null>(null);
+  const outboxRef = useRef<unknown[]>([]);
 
   const connect = useCallback((playerId: string) => {
     const ws = new WebSocket(wsUrl(playerId));
     wsRef.current = ws;
+    ws.onopen = () => {
+      for (const msg of outboxRef.current) ws.send(JSON.stringify(msg));
+      outboxRef.current = [];
+    };
     ws.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
@@ -191,7 +196,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [connect]);
 
   const send = useCallback((msg: unknown) => {
-    wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify(msg));
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+    } else if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+      outboxRef.current.push(msg);
+    }
   }, []);
 
   const joinQueue = useCallback(() => {
