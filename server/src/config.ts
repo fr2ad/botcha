@@ -28,5 +28,5 @@ export const AVATAR_POOL = ['🦝', '🐑', '🐺', '🦄', '🦉', '🐴', '�
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? '';
 // Default matches server/.env.example — see the comment there on why this
 // specific free model, and why it's worth re-checking before relying on it.
-export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'inclusionai/ling-3.0-tiny:free';
+export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-nano-9b-v2:free';
 export const PORT = Number(process.env.PORT ?? 8787);
