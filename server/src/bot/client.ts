@@ -44,13 +44,19 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
     return sanitize(MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)]);
   }
 
+  // "React to something specific someone said" is nonsensical on the very
+  // first turn (empty history) — telling the model to do it anyway made it
+  // spiral trying to resolve the contradiction, sometimes burning 600+
+  // hidden reasoning tokens and returning nothing at all.
+  const instruction =
+    history.length === 0
+      ? `(Round ${round}/${CONFIG.tableRounds}. You're speaking first. Send an opening chat message now, under ${CONFIG.maxMessageLength} chars — something a real player might say to kick things off, not a generic greeting.)`
+      : `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. React to something specific someone actually said — don't just say "lol" or another one-word filler.)`;
+
   const messages = [
     { role: 'system', content: persona.systemPrompt },
     ...history.map((h) => ({ role: 'user' as const, content: `${h.speaker}: ${h.text}` })),
-    {
-      role: 'user',
-      content: `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. React to something specific someone actually said — don't just say "lol" or another one-word filler.)`
-    }
+    { role: 'user', content: instruction }
   ];
 
   const controller = new AbortController();
