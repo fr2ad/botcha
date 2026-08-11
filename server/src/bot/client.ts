@@ -86,13 +86,16 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
       }),
       signal: controller.signal
     });
-    if (!res.ok) throw new Error(`openrouter ${res.status}`);
+    if (!res.ok) throw new Error(`openrouter ${res.status} ${await res.text().catch(() => '')}`);
     const json = (await res.json()) as any;
     const text = json?.choices?.[0]?.message?.content ?? '';
+    if (!text) console.error('[bot] empty content', JSON.stringify(json?.choices?.[0]));
     return sanitize(text);
-  } catch {
+  } catch (err) {
     // Timeout, network error, or non-2xx — the bot just skips this turn,
-    // indistinguishable from a hesitant human (see SPEC 3.5).
+    // indistinguishable from a hesitant human (see SPEC 3.5). Logged so a
+    // silent skip is diagnosable after the fact instead of a total mystery.
+    console.error('[bot] reply failed', err);
     return '';
   } finally {
     clearTimeout(timeout);
