@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { connections } from '../game/connections.js';
-import { joinQueue, leaveQueue, onDisconnect, activeRooms } from '../game/queue.js';
+import { broadcastQueue, joinQueue, leaveQueue, onDisconnect, activeRooms } from '../game/queue.js';
 import { getPlayer } from '../db/index.js';
 
 export function registerWsRoute(app: FastifyInstance) {
@@ -16,6 +16,7 @@ export function registerWsRoute(app: FastifyInstance) {
     }
 
     connections.set(playerId, { playerId, ws: socket, gameId: null });
+    broadcastQueue(); // new arrival changes the online count everyone sees
 
     socket.on('message', (raw: Buffer) => {
       let msg: any;

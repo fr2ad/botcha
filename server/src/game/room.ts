@@ -248,6 +248,11 @@ export class Room {
       identities: this.seats.map((s) => ({ seatIndex: s.index, nickname: s.nickname, avatar: s.avatar, isBot: s.kind === 'bot' }))
     });
 
+    // Let the reveal land before the result screen replaces it — these used to
+    // go out in the same tick, so the unmasking flashed past unseen. Long
+    // enough to read four seats' guesses, not so long it drags.
+    await sleep(6000);
+
     for (const seat of this.humanSeats()) {
       if (!seat.playerId) continue;
       const correct = seat.guessSeatIndex === botSeat.index;

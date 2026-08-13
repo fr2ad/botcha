@@ -6,9 +6,11 @@ import { Room } from './room.js';
 const queue: string[] = [];
 export const activeRooms = new Map<string, Room>();
 
-function broadcastQueue() {
+// Goes to everyone connected, not just the queue — the home screen shows the
+// online count too, and it would otherwise sit at 0 until you queued up.
+export function broadcastQueue() {
   const msg = { type: 'queue.update', onlineCount: connections.size, queueSize: queue.length };
-  for (const playerId of queue) send(playerId, msg);
+  for (const playerId of connections.keys()) send(playerId, msg);
 }
 
 export function joinQueue(playerId: string) {
