@@ -326,7 +326,8 @@ a {
 }
 
 .pop {
-  animation: popIn 0.3s cubic-bezier(0.2, 1.4, 0.5, 1) both;
+  /* ease-out-quint: decelerates hard, no overshoot. */
+  animation: popIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--i, 0) * var(--stagger, 60ms));
 }
 
