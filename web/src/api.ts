@@ -25,6 +25,13 @@ export function fetchPlayer(id: string) {
   return req<{ player: Player }>(`/api/players/${id}`);
 }
 
+export function updateAvatar(id: string, avatar: string) {
+  return req<{ player: Player }>(`/api/players/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ avatar })
+  });
+}
+
 export function fetchLeaderboard() {
   return req<{ players: LeaderboardEntry[] }>('/api/leaderboard');
 }

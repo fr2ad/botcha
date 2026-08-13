@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { fetchPlayer, mockLogin, wsUrl } from './api';
+import { fetchPlayer, mockLogin, updateAvatar, wsUrl } from './api';
 import type { ChatMessage, GamePhase, Player, RevealData, ResultData, RosterEntry } from './types';
 
 type State = {
@@ -126,6 +126,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, phase: 'cancelled', cancelReason: action.reason };
     case 'RESET_TO_HOME':
       return { ...initialState, player: state.player, onlineCount: state.onlineCount };
+    case 'LOGOUT':
+      return initialState;
     default:
       return state;
   }
@@ -140,6 +142,8 @@ type Ctx = {
   sendTurnMessage: (text: string) => void;
   submitGuess: (seatIndex: number) => void;
   goHome: () => void;
+  changeAvatar: (avatar: string) => Promise<void>;
+  logout: () => void;
 };
 
 const GameCtx = createContext<Ctx | null>(null);
@@ -240,6 +244,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESET_TO_HOME' });
   }, []);
 
+  const changeAvatar = useCallback(async (avatar: string) => {
+    const id = localStorage.getItem(STORAGE_KEY);
+    if (!id) return;
+    const { player } = await updateAvatar(id, avatar);
+    dispatch({ type: 'SET_PLAYER', player });
+  }, []);
+
+  const logout = useCallback(() => {
+    // Mock login mints a brand new player every time, so the stored id is the
+    // only handle on this account — dropping it is permanent. The UI confirms
+    // before calling this.
+    intentionalCloseRef.current = true;
+    wsRef.current?.close();
+    wsRef.current = null;
+    localStorage.removeItem(STORAGE_KEY);
+    dispatch({ type: 'LOGOUT' });
+  }, []);
+
   // Auto-advance roster -> chat after the server's countdown.
   useEffect(() => {
     if (state.phase !== 'roster') return;
@@ -264,8 +286,30 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Ctx>(
-    () => ({ state, login, resumeSession, joinQueue, leaveQueue, sendTurnMessage, submitGuess, goHome }),
-    [state, login, resumeSession, joinQueue, leaveQueue, sendTurnMessage, submitGuess, goHome]
+    () => ({
+      state,
+      login,
+      resumeSession,
+      joinQueue,
+      leaveQueue,
+      sendTurnMessage,
+      submitGuess,
+      goHome,
+      changeAvatar,
+      logout
+    }),
+    [
+      state,
+      login,
+      resumeSession,
+      joinQueue,
+      leaveQueue,
+      sendTurnMessage,
+      submitGuess,
+      goHome,
+      changeAvatar,
+      logout
+    ]
   );
 
   return <GameCtx.Provider value={value}>{children}</GameCtx.Provider>;

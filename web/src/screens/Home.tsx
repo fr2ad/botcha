@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
-import { Orb } from '../components/Orb';
+import { AVATAR_POOL, Orb } from '../components/Orb';
 
 const COIN_ENTRY_PRICE = 25;
 const DAILY_HEARTS = 5;
@@ -19,7 +19,7 @@ function untilRefill() {
 export function Home() {
   const navigate = useNavigate();
   const { state, joinQueue } = useGame();
-  const [sheet, setSheet] = useState<'hearts' | 'how' | null>(null);
+  const [sheet, setSheet] = useState<'hearts' | 'how' | 'profile' | null>(null);
   const player = state.player;
 
   if (!player) return null;
@@ -57,7 +57,7 @@ export function Home() {
               {player.coins}
             </span>
           </div>
-          <Orb avatar={player.avatar} size={40} ring="var(--accent)" />
+          <Orb avatar={player.avatar} size={40} ring="var(--accent)" onClick={() => setSheet('profile')} />
         </div>
 
         <div
@@ -169,7 +169,174 @@ export function Home() {
         </div>
       )}
 
+      {sheet === 'profile' && <Profile onClose={() => setSheet(null)} />}
+
       {sheet === 'how' && <HowToPlay onClose={() => setSheet(null)} />}
+    </div>
+  );
+}
+
+function Profile({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const { state, changeAvatar, logout } = useGame();
+  const [picking, setPicking] = useState(false);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const player = state.player;
+
+  if (!player) return null;
+
+  async function pick(avatar: string) {
+    setError(null);
+    try {
+      await changeAvatar(avatar);
+      setPicking(false);
+    } catch {
+      setError("Couldn't save that — try again.");
+    }
+  }
+
+  function confirmLogout() {
+    logout();
+    navigate('/');
+  }
+
+  return (
+    <div className="sheet" role="dialog" aria-label="Your profile">
+      <div className="sheet-grab" />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <Orb avatar={player.avatar} size={64} ring="var(--accent)" />
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-head)',
+              fontWeight: 600,
+              fontSize: 20,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {player.nickname}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+            Rank <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>#{player.rank}</span> ·{' '}
+            {player.score} score
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+        <Stat label="caught" value={player.history.correct} color="var(--green)" />
+        <Stat label="missed" value={player.history.wrong + player.history.noGuess} color="var(--pink)" />
+        <Stat label="games" value={player.history.games} color="var(--text-2)" />
+      </div>
+
+      {picking ? (
+        <>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: 2,
+              fontWeight: 800,
+              color: 'var(--text-5)',
+              margin: '22px 0 12px'
+            }}
+          >
+            PICK A NEW LOOK
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: 12,
+              justifyItems: 'center',
+              ['--stagger' as string]: '25ms'
+            }}
+          >
+            {AVATAR_POOL.map((a, i) => (
+              <div key={a} className="pop" style={{ ['--i' as string]: i }}>
+                <Orb avatar={a} size={48} selected={player.avatar === a} onClick={() => pick(a)} />
+              </div>
+            ))}
+          </div>
+          <button className="btn-text" style={{ width: '100%' }} onClick={() => setPicking(false)}>
+            Done
+          </button>
+        </>
+      ) : confirmingLogout ? (
+        <>
+          <div
+            style={{
+              marginTop: 20,
+              padding: '12px 14px',
+              borderRadius: 14,
+              background: 'rgba(255,92,138,.1)',
+              border: '1px solid rgba(255,92,138,.35)',
+              fontSize: 12,
+              color: 'var(--text-2)',
+              lineHeight: 1.5
+            }}
+          >
+            Log out and this account is gone for good — sign-in is still mocked, so there's no way back to{' '}
+            <b>{player.nickname}</b>, your {player.score} score, or your {player.coins} coins.
+          </div>
+          <button
+            className="btn-primary"
+            style={{ marginTop: 14, background: 'var(--pink)', boxShadow: '0 0 24px rgba(255,92,138,.4)' }}
+            onClick={confirmLogout}
+          >
+            Yes, log out
+          </button>
+          <button className="btn-text" style={{ width: '100%' }} onClick={() => setConfirmingLogout(false)}>
+            Keep me signed in
+          </button>
+        </>
+      ) : (
+        <>
+          <button className="btn-outline" style={{ width: '100%', marginTop: 20 }} onClick={() => setPicking(true)}>
+            <i className="hgi-stroke hgi-user-circle" style={{ fontSize: 15, color: 'var(--accent-2)' }} />
+            Change avatar
+          </button>
+          <button
+            className="btn-outline"
+            style={{ width: '100%', marginTop: 10, color: 'var(--pink)', borderColor: 'rgba(255,92,138,.35)' }}
+            onClick={() => setConfirmingLogout(true)}
+          >
+            <i className="hgi-stroke hgi-logout-03" style={{ fontSize: 15 }} />
+            Log out
+          </button>
+          <button className="btn-text" style={{ width: '100%' }} onClick={onClose}>
+            Close
+          </button>
+        </>
+      )}
+
+      {error && (
+        <div className="shake" style={{ color: 'var(--pink)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: 'var(--surface)',
+        borderRadius: 14,
+        padding: '10px 0',
+        textAlign: 'center'
+      }}
+    >
+      <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 18, color }}>{value}</div>
+      <div style={{ fontSize: 9.5, letterSpacing: 1, color: 'var(--text-5)', fontWeight: 800 }}>
+        {label.toUpperCase()}
+      </div>
     </div>
   );
 }

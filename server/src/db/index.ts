@@ -118,6 +118,10 @@ export function createPlayer(input: { id: string; googleId: string; nickname: st
   return getPlayer(input.id)!;
 }
 
+export function setAvatar(playerId: string, avatar: string) {
+  db.prepare(`UPDATE players SET avatar = ? WHERE id = ?`).run(avatar, playerId);
+}
+
 export function adjustCoins(playerId: string, delta: number, reason: string, gameId?: string) {
   db.prepare(`UPDATE players SET coins = coins + ? WHERE id = ?`).run(delta, playerId);
   db.prepare(`INSERT INTO coin_ledger (player_id, delta, reason, game_id) VALUES (?, ?, ?, ?)`).run(

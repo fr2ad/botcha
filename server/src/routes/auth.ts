@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
 import { AVATAR_POOL } from '../config.js';
-import { createPlayer, getPlayer, getPlayerHistory, getPlayerRank } from '../db/index.js';
+import { createPlayer, getPlayer, getPlayerHistory, getPlayerRank, setAvatar } from '../db/index.js';
 
 // Mock Google login: no real OAuth. The client sends a nickname + avatar it
 // picked and either gets a fresh player or (if it already has a playerId
@@ -29,6 +29,25 @@ export function registerAuthRoutes(app: FastifyInstance) {
     if (!player) return reply.code(404).send({ error: 'not found' });
     return { player: withStats(player.id) };
   });
+
+  // Same trust model as the rest of the mock-login MVP: the playerId in the
+  // path is the credential. Real Google OAuth (SPEC 9) is what makes this a
+  // real authorization check; until then anyone holding an id can edit it.
+  app.patch<{ Params: { id: string }; Body: { avatar?: string } }>(
+    '/api/players/:id',
+    async (req, reply) => {
+      const player = getPlayer(req.params.id);
+      if (!player) return reply.code(404).send({ error: 'not found' });
+
+      const { avatar } = req.body ?? {};
+      if (!avatar || !AVATAR_POOL.includes(avatar)) {
+        return reply.code(400).send({ error: 'unknown avatar' });
+      }
+
+      setAvatar(player.id, avatar);
+      return { player: withStats(player.id) };
+    }
+  );
 }
 
 function withStats(playerId: string) {

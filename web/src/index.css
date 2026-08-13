@@ -318,14 +318,16 @@ a {
 
 /* ---------- animation utilities ---------- */
 
+/* --stagger keeps long lists from trickling: 60ms reads well up to ~8 items,
+   but a 15-item grid needs to be tightened or the tail arrives a second late. */
 .rise {
   animation: riseIn 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation-delay: calc(var(--i, 0) * var(--stagger, 60ms));
 }
 
 .pop {
   animation: popIn 0.3s cubic-bezier(0.2, 1.4, 0.5, 1) both;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation-delay: calc(var(--i, 0) * var(--stagger, 60ms));
 }
 
 .pulse {

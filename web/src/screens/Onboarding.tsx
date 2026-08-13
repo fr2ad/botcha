@@ -62,7 +62,15 @@ export function Onboarding() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, justifyItems: 'center' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 16,
+          justifyItems: 'center',
+          ['--stagger' as string]: '30ms'
+        }}
+      >
         {AVATAR_POOL.map((a, i) => (
           <div key={a} className="pop" style={{ ['--i' as string]: i }}>
             <Orb avatar={a} selected={avatar === a} onClick={() => setAvatar(a)} />
