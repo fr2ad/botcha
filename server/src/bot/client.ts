@@ -25,11 +25,28 @@ const LEAK_PATTERNS = [
   /openai|anthropic|claude|gpt-\d|llama/i
 ];
 
-function sanitize(text: string): string {
+function sanitize(text: string, speakers: string[] = []): string {
   let out = text.trim();
   for (const re of LEAK_PATTERNS) {
     if (re.test(out)) return MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
   }
+
+  // History is fed in as "Blue Fox: hi", and models imitate that format —
+  // gpt-4o-mini prefixed 44% of replies with another seat's name in testing,
+  // which renders as that seat talking under the bot's own header. Only strip
+  // a prefix that actually names a speaker in this game.
+  for (const name of speakers) {
+    const re = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:\\s*`, 'i');
+    if (re.test(out)) {
+      out = out.replace(re, '');
+      break;
+    }
+  }
+
+  // One turn is one chat message; newlines would render as a multi-line
+  // monologue no human types into a turn-based box.
+  out = out.replace(/\s*\n+\s*/g, ' ').trim();
+
   if (out.length > CONFIG.maxMessageLength) out = out.slice(0, CONFIG.maxMessageLength - 1) + '…';
   // Empty content (model returned nothing, e.g. reasoning ate the whole
   // budget) used to fall back to a hardcoded 'lol' — that's why the bot
@@ -37,7 +54,12 @@ function sanitize(text: string): string {
   return out || MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
 }
 
-export async function getBotReply(persona: Persona, history: ChatTurn[], round: number): Promise<string> {
+export async function getBotReply(
+  persona: Persona,
+  history: ChatTurn[],
+  round: number,
+  ownCodeName?: string
+): Promise<string> {
   if (!OPENROUTER_API_KEY) {
     // No key configured — deterministic-ish mock so local dev works end to end.
     await new Promise((r) => setTimeout(r, 400 + Math.random() * 1200));
@@ -53,9 +75,17 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
       ? `(Round ${round}/${CONFIG.tableRounds}. You're speaking first. Send an opening chat message now, under ${CONFIG.maxMessageLength} chars — something a real player might say to kick things off, not a generic greeting.)`
       : `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. React to something specific someone actually said — don't just say "lol" or another one-word filler.)`;
 
+  // The bot's own past turns go back as `assistant`, not as another
+  // "Name: text" user line. Feeding them as user messages made it treat its
+  // own words as someone else's and parrot them verbatim the next turn — and
+  // encouraged it to write whole lines *for* other seats, both dead tells.
   const messages = [
     { role: 'system', content: persona.systemPrompt },
-    ...history.map((h) => ({ role: 'user' as const, content: `${h.speaker}: ${h.text}` })),
+    ...history.map((h) =>
+      ownCodeName && h.speaker === ownCodeName
+        ? { role: 'assistant' as const, content: h.text }
+        : { role: 'user' as const, content: `${h.speaker}: ${h.text}` }
+    ),
     { role: 'user', content: instruction }
   ];
 
@@ -90,7 +120,7 @@ export async function getBotReply(persona: Persona, history: ChatTurn[], round: 
     const json = (await res.json()) as any;
     const text = json?.choices?.[0]?.message?.content ?? '';
     if (!text) console.error('[bot] empty content', JSON.stringify(json?.choices?.[0]));
-    return sanitize(text);
+    return sanitize(text, [...new Set(history.map((h) => h.speaker))]);
   } catch (err) {
     // Timeout, network error, or non-2xx — the bot just skips this turn,
     // indistinguishable from a hesitant human (see SPEC 3.5). Logged so a

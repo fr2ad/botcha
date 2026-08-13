@@ -177,7 +177,7 @@ export class Room {
     let text: string | null = null;
     if (seat.kind === 'bot') {
       text = await raceWithTimeout(
-        getBotReply(this.persona, this.history, round),
+        getBotReply(this.persona, this.history, round, seat.codeName),
         CONFIG.turnWindowMs
       );
     } else if (seat.connected && seat.playerId) {
