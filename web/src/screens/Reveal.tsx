@@ -20,6 +20,7 @@ export function Reveal() {
   const botSeat = state.roster.find((s) => s.seatIndex === reveal.botSeatIndex);
   const myGuess = reveal.guesses.find((g) => g.seatIndex === state.mySeatIndex);
   const iWasRight = myGuess?.guessSeatIndex === reveal.botSeatIndex;
+  const botColor = botSeat?.color ?? 'var(--pink)';
 
   return (
     <div className="screen" style={{ alignItems: 'center', background: 'var(--bg-0)' }}>
@@ -58,7 +59,7 @@ export function Reveal() {
             height: 128,
             borderRadius: '50%',
             background: 'var(--surface)',
-            boxShadow: `0 0 0 4px ${botSeat?.color ?? 'var(--pink)'}, 0 0 60px ${botSeat?.color ?? 'var(--pink)'}80`,
+            boxShadow: `0 0 0 4px ${botColor}, 0 0 60px color-mix(in oklab, ${botColor} 50%, transparent)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'

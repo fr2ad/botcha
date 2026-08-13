@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Confetti } from '../components/Ambient';
+import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
 
@@ -170,15 +171,35 @@ export function Result() {
               }}
             >
               <SeatAvatar codeName={seat.codeName} color={seat.color} size={36} ringWidth={2} />
-              <span style={{ fontSize: 13, flex: 1, fontWeight: identity.isBot ? 700 : 400 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  flex: 1,
+                  fontWeight: identity.isBot ? 700 : 400,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  minWidth: 0
+                }}
+              >
                 {seat.codeName}
                 {identity.isBot ? (
                   ' — the bot'
                 ) : (
-                  <span style={{ color: 'var(--text-3)' }}>
-                    {' · '}
-                    {isMe ? 'you, ' : ''}"{identity.nickname}" {identity.avatar}
-                  </span>
+                  <>
+                    <span style={{ color: 'var(--text-5)' }}>·</span>
+                    <Orb avatar={identity.avatar} size={18} />
+                    <span
+                      style={{
+                        color: 'var(--text-3)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {isMe ? 'you, ' : ''}"{identity.nickname}"
+                    </span>
+                  </>
                 )}
               </span>
               {identity.isBot ? (

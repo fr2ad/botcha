@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { nanoid } from 'nanoid';
+import { AVATAR_POOL } from '../config.js';
 import { createPlayer, getPlayer, getPlayerHistory, getPlayerRank } from '../db/index.js';
 
 // Mock Google login: no real OAuth. The client sends a nickname + avatar it
@@ -12,6 +13,11 @@ export function registerAuthRoutes(app: FastifyInstance) {
     const { nickname, avatar } = req.body ?? {};
     if (!nickname || !avatar) {
       return reply.code(400).send({ error: 'nickname and avatar are required' });
+    }
+    // The avatar id is echoed to every other player in the room, so it has to
+    // be one we actually draw — not whatever string the client felt like.
+    if (!AVATAR_POOL.includes(avatar)) {
+      return reply.code(400).send({ error: 'unknown avatar' });
     }
     const id = nanoid(12);
     const player = createPlayer({ id, googleId: `mock-${id}`, nickname: nickname.slice(0, 24), avatar });

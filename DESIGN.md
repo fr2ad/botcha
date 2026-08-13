@@ -31,16 +31,22 @@ All tokens live on `:root` in [web/src/index.css](web/src/index.css). Use the va
 
 ### Seat colors
 
-Mirror `server/src/config.ts:SEAT_CODE_NAMES` exactly — the server assigns them, the client must not invent its own.
+**Seat colors are not tokens.** They arrive per-game over the wire as `oklch()` strings the server picked (`server/src/config.ts`), because a Seat is "a color plus code name" drawn fresh from a 50-name pool — see §4a. The client renders `seat.color` and never substitutes its own.
 
-| Seat | Token | Value |
+Because the value can be any color syntax, **never build a translucent variant by appending hex alpha** (`` `${seat.color}59` ``) — that silently corrupts an `oklch()` string. Use `color-mix`:
+
+```css
+color-mix(in oklab, var(--seat) 35%, transparent)
+```
+
+The four fixed color tokens that remain are semantic, not seat identities:
+
+| Token | Value | Means |
 |---|---|---|
-| Blue Fox | `--blue` | `#3d9dff` |
-| Red Owl | `--pink` | `#ff5c8a` |
-| Green Cat | `--green` | `#38d97a` |
-| Yellow Duck | `--amber` | `#ffcf3d` |
-
-`--green` doubles as "correct / positive delta", `--pink` as "wrong / negative delta", `--amber` as coins. That overload is intentional and consistent across Reveal, Result, and Leaderboard.
+| `--green` | `#38d97a` | correct, positive delta, online |
+| `--pink` | `#ff5c8a` | wrong, negative delta, hearts |
+| `--amber` | `#ffcf3d` | coins, rank 1 |
+| `--blue` | `#3d9dff` | reserved accent (confetti) |
 
 ### Type
 
@@ -106,7 +112,7 @@ Shared vocabulary lives in `index.css` as classes; screens compose them and only
 | `.chip` | small pill on `--surface` for hearts, coins, round counter |
 | `.panel` | `--panel` card, 16–20px radius, 1px `--line` |
 | `<Wordmark/>` | `B` + eye glyph + `TCHA`; the eye's pupil runs `eyeScan`. One component, three sizes (splash 30, landing 46, table header 14) |
-| `<Orb/>` | player avatar: emoji inside an oklch radial-gradient disc, hue derived from the emoji's index in the pool. `selected` adds accent ring + `popIn` |
+| `<Orb/>` | player avatar: one of 15 drawn faces (§4b) on a lit oklch disc. `selected` adds accent ring + `popIn` |
 | `<SeatAvatar/>` | in-game seat: **dark well** (`--surface`) + colored ring + colored code-name initial in Fredoka. Never a filled color disc |
 | `<CountdownRing/>` | conic-gradient ring draining over the turn/guess window, seconds in Fredoka at center, optional label |
 | `<Ambient/>` | the radial violet wash + 3–4 drifting particles. Decorative, `pointer-events:none`, `aria-hidden` |
@@ -136,11 +142,37 @@ Frame IDs refer to the handoff bundle.
 
 ---
 
+## 4a. Seat identities
+
+50 code names, generated in `server/src/config.ts` as **10 color families × 5 animals**:
+
+| Family | Hue | Family | Hue |
+|---|---|---|---|
+| Crimson | 25 | Teal | 190 |
+| Ember | 55 | Azure | 225 |
+| Amber | 90 | Blue | 260 |
+| Lime | 125 | Violet | 300 |
+| Jade | 155 | Rose | 350 |
+
+Rendered as `oklch(70% 0.16 <hue>)`. Two rules make the pool safe to draw from:
+
+1. **The color word must match the rendered hue.** Players say "I think Blue Fox is the bot" out loud — a Blue Fox that renders pink is a bug, not a quirk.
+2. **A game draws one name from each of 4 *distinct families*, never 4 off the flat list of 50.** A straight random draw can hand you Crimson Owl and Rose Quail — ~25° apart, indistinguishable at a glance — which breaks the only mechanic the game has. Family-based drawing guarantees ≥30° separation, and the animal names are unique across all 50 so no two seats can share either half of their name. `server/src/config.test.ts` asserts this over 500 draws.
+
+## 4b. Avatars
+
+15 faces, ids only (`dot`, `diamond`, `bar`, `square`, `cyclops`, `brow`, `capsule`, `trio`, `visor`, `wedge`, `scan`, `cross`, `sleepy`, `pip`, `crown`). The server stores and validates the id; `web/src/components/Orb.tsx` owns what each looks like — keep the two lists in sync.
+
+Construction, shared by all 15: a radial-gradient disc at `oklch(76% .15 h) → oklch(52% .16 h)`, hues 24° apart, with a dark `#14162a` geometric face inline-SVG'd on top in a `0 0 64 64` box. Eyes sit at x21/x43, y28 so the set reads as one family. No emoji, no external assets.
+
+Accounts created before the switch stored an emoji; `Orb` still renders those as text on a hashed hue rather than showing a blank disc, so no migration was needed.
+
 ## 5. Deliberate deviations from the mockup
 
 The prototype was drawn against a snapshot of the app; where it disagrees with the running system, the system wins. These are decisions, not gaps:
 
-- **Emoji avatars, not drawn creatures.** Frame 1d invents 12 custom orb faces. The server stores an emoji (`server/src/config.ts:AVATAR_POOL`) and the leaderboard renders it, so `<Orb/>` keeps the emoji and adopts the mockup's gradient-disc treatment around it.
+- **15 drawn faces, extending the mockup's 12.** Frame 1d draws 12 custom orb faces; the pool is now 15 in the same visual language (§4b), and the emoji the server used to store are gone.
+- **50 seat names, not the mockup's list.** Frame 1's script ships a 50-name pool, but its hues are spread evenly down the list regardless of the color word — "Jade Cat" lands on hue 14, a red. Rebuilt as color families so the name matches the color (§4a).
 - **Seat identity in-game is the code-name initial**, per frames 1h–1j — not the player's emoji. This is also closer to `docs/SPEC.md` §2, where a Seat is a color + code name and the roster mapping stays hidden.
 - **No typing indicator.** Frame 1i shows "Red Owl is typing…". The server emits no typing event and adding one would leak turn-timing signal about the bot. Dropped.
 - **No rank delta on Result.** Frame 1l shows `#42 → #37 ▲`. The server sends only the post-game rank (`game.result.leaderboardRank`), so the arrow would be fabricated. Shows the absolute rank only.

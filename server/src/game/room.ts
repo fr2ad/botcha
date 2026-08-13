@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { CONFIG, SEAT_CODE_NAMES } from '../config.js';
+import { CONFIG, pickSeatIdentities } from '../config.js';
 import { connections, send } from './connections.js';
 import type { Seat, RoomPhase } from './types.js';
 import { pickPersona, type Persona } from '../bot/personas.js';
@@ -39,7 +39,7 @@ export class Room {
 
   constructor(humanPlayerIds: string[]) {
     this.persona = pickPersona();
-    const codeNames = shuffle(SEAT_CODE_NAMES);
+    const codeNames = pickSeatIdentities(CONFIG.seatsPerRoom);
     const botSeatIndex = Math.floor(Math.random() * CONFIG.seatsPerRoom);
     const humanOrder = shuffle(humanPlayerIds);
 

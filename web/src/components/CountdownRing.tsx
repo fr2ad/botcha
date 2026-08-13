@@ -28,7 +28,7 @@ export function CountdownRing({ deadline, totalMs, size = 116, color = 'var(--ac
         height: size,
         borderRadius: '50%',
         background: `conic-gradient(${color} ${pct}%, rgba(255,255,255,.08) 0)`,
-        boxShadow: `0 0 ${size * 0.28}px ${color}4d`,
+        boxShadow: `0 0 ${size * 0.28}px color-mix(in oklab, ${color} 30%, transparent)`,
         padding: pad,
         flexShrink: 0
       }}

@@ -151,7 +151,7 @@ export function Table() {
                     fontWeight: 800,
                     letterSpacing: 1,
                     color: seat.color,
-                    background: `${seat.color}1f`,
+                    background: `color-mix(in oklab, ${seat.color} 14%, transparent)`,
                     padding: '2px 8px',
                     borderRadius: 999,
                     whiteSpace: 'nowrap'

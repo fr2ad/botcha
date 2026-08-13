@@ -17,7 +17,11 @@ export function SeatAvatar({ codeName, color, size = 50, ringWidth = 2.5, glow =
         height: size,
         borderRadius: '50%',
         background: 'var(--surface)',
-        boxShadow: `0 0 0 ${ringWidth}px ${color}${glow ? `, 0 0 ${size * 0.4}px ${color}59` : ''}`,
+        // color-mix, not a hex-alpha suffix: seat colors arrive as oklch()
+        // strings from the server, which `${color}59` would corrupt.
+        boxShadow: `0 0 0 ${ringWidth}px ${color}${
+          glow ? `, 0 0 ${size * 0.4}px color-mix(in oklab, ${color} 35%, transparent)` : ''
+        }`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

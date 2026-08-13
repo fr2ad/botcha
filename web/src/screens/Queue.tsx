@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
-import { Orb } from '../components/Orb';
+import { AVATAR_POOL, Orb } from '../components/Orb';
 
 export function Queue() {
   const navigate = useNavigate();
@@ -97,7 +97,7 @@ export function Queue() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <div style={{ borderRadius: '50%', animation: 'ringPulse 2.4s ease-out infinite' }}>
-            <Orb avatar={state.player?.avatar ?? '🦊'} size={62} ring="var(--accent)" />
+            <Orb avatar={state.player?.avatar ?? AVATAR_POOL[0]} size={62} ring="var(--accent)" />
           </div>
           <span style={{ fontSize: 10.5, fontWeight: 700 }}>you</span>
         </div>

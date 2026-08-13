@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
+import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 
 export function Roster() {
@@ -21,7 +22,9 @@ export function Roster() {
 
   // Real nicknames are listed unordered on purpose: the spec shows who is in the
   // room without revealing which Seat is which (docs/SPEC.md §2).
-  const nicknames = state.roster.map((s) => `${s.avatar} ${s.nickname}`).sort();
+  const players = [...state.roster]
+    .map((s) => ({ nickname: s.nickname, avatar: s.avatar }))
+    .sort((a, b) => a.nickname.localeCompare(b.nickname));
 
   return (
     <div className="screen" style={{ alignItems: 'center' }}>
@@ -92,20 +95,24 @@ export function Roster() {
       </div>
 
       <div style={{ marginTop: 20, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {nicknames.map((n, i) => (
+        {players.map((p, i) => (
           <span
-            key={n}
+            key={p.nickname}
             className="rise"
             style={{
               ['--i' as string]: i + 4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
               border: '1px solid rgba(255,255,255,.1)',
               borderRadius: 999,
-              padding: '4px 11px',
+              padding: '3px 11px 3px 4px',
               fontSize: 10.5,
               color: 'var(--text-3)'
             }}
           >
-            {n}
+            <Orb avatar={p.avatar} size={20} />
+            {p.nickname}
           </span>
         ))}
       </div>
