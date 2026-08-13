@@ -1,38 +1,85 @@
 import { useNavigate } from 'react-router-dom';
+import { Ambient } from '../components/Ambient';
+import { Wordmark } from '../components/Wordmark';
+
+const STEPS = [
+  { icon: 'hgi-user-group', label: 'join a table' },
+  { icon: 'hgi-message-01', label: 'chat 3 rounds' },
+  { icon: 'hgi-search-01', label: 'guess the bot' }
+];
 
 export function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="screen" style={{ alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center' }}>
-      <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 34, letterSpacing: 0.5 }}>BOTCHA</div>
-      <div style={{ fontSize: 15, color: 'var(--text-3)', lineHeight: 1.5 }}>
+    <div className="screen" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+      <Ambient />
+
+      <Wordmark size={46} />
+
+      <div style={{ marginTop: 14, fontSize: 16, color: 'var(--text-2)', lineHeight: 1.5 }}>
         3 humans. 1 bot.
         <br />
-        <span style={{ color: 'var(--accent)', fontWeight: 800 }}>Find it.</span>
+        <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>Find it.</span>
       </div>
 
-      <button className="btn-primary" style={{ width: 220, marginTop: 8 }} onClick={() => navigate('/onboarding')}>
+      <button className="btn-primary pulse" style={{ width: 260, marginTop: 34 }} onClick={() => navigate('/onboarding')}>
+        <span
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: '#fff',
+            color: 'var(--accent-deep)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-head)',
+            fontWeight: 700,
+            fontSize: 13
+          }}
+        >
+          G
+        </span>
         Continue with Google
       </button>
-      <div style={{ fontSize: 11, color: 'var(--text-6)' }}>(mocked for now — no real Google sign-in yet)</div>
-
-      <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
-        <Step icon="hgi-user-group" label="join a table" />
-        <Step icon="hgi-message-01" label="chat 3 rounds" />
-        <Step icon="hgi-search-01" label="guess the bot" />
+      <div style={{ marginTop: 12, fontSize: 10.5, color: 'var(--text-5)' }}>
+        mocked for now — one tap and you're in
       </div>
-    </div>
-  );
-}
 
-function Step({ icon, label }: { icon: string; label: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text-4)' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--pill-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <i className={`hgi-stroke ${icon}`} style={{ fontSize: 17, color: 'var(--accent)' }} />
+      <div style={{ display: 'flex', gap: 26, marginTop: 52 }}>
+        {STEPS.map((s, i) => (
+          <div
+            key={s.label}
+            className="rise"
+            style={{
+              ['--i' as string]: i + 2,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 10.5,
+              color: 'var(--text-3)'
+            }}
+          >
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: '50%',
+                background: 'var(--surface)',
+                border: '1px solid rgba(255,255,255,.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <i className={`hgi-stroke ${s.icon}`} style={{ fontSize: 19, color: 'var(--accent-2)' }} />
+            </div>
+            {s.label}
+          </div>
+        ))}
       </div>
-      {label}
     </div>
   );
 }

@@ -1,29 +1,34 @@
+// In-game seat identity: a dark well with a colored ring and the code name's
+// initial — never a filled color disc, and never the player's emoji (that would
+// leak the roster mapping the game is built on hiding). See DESIGN.md §5.
 type Props = {
-  letter: string;
+  codeName: string;
   color: string;
   size?: number;
-  ring?: boolean;
+  ringWidth?: number;
+  glow?: boolean;
 };
 
-export function SeatAvatar({ letter, color, size = 44, ring = false }: Props) {
+export function SeatAvatar({ codeName, color, size = 50, ringWidth = 2.5, glow = false }: Props) {
   return (
     <div
       style={{
         width: size,
         height: size,
         borderRadius: '50%',
-        background: color,
+        background: 'var(--surface)',
+        boxShadow: `0 0 0 ${ringWidth}px ${color}${glow ? `, 0 0 ${size * 0.4}px ${color}59` : ''}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 800,
-        fontSize: size * 0.36,
-        color: '#14162a',
-        boxShadow: ring ? '0 0 0 3px var(--accent)' : undefined,
+        fontFamily: 'var(--font-head)',
+        fontWeight: 600,
+        fontSize: size * 0.34,
+        color,
         flexShrink: 0
       }}
     >
-      {letter}
+      {codeName.charAt(0)}
     </div>
   );
 }

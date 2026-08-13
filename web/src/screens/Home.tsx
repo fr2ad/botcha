@@ -1,73 +1,250 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { Ambient } from '../components/Ambient';
+import { Orb } from '../components/Orb';
+
+const COIN_ENTRY_PRICE = 25;
+const DAILY_HEARTS = 5;
+
+// Server resets hearts on a UTC day stamp (server/src/db/index.ts), so the
+// refill lands at the next UTC midnight — no need to invent a countdown.
+function untilRefill() {
+  const now = new Date();
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const mins = Math.max(0, Math.round((next - now.getTime()) / 60000));
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
 
 export function Home() {
   const navigate = useNavigate();
   const { state, joinQueue } = useGame();
+  const [sheet, setSheet] = useState<'hearts' | 'how' | null>(null);
   const player = state.player;
 
-  if (!player) {
-    navigate('/');
-    return null;
-  }
+  if (!player) return null;
 
   const canPlayFree = player.hearts_remaining > 0;
+  const canPayCoins = player.coins >= COIN_ENTRY_PRICE;
 
-  function handlePlay() {
+  function startGame() {
     joinQueue();
     navigate('/queue');
   }
 
-  return (
-    <div className="screen" style={{ paddingBottom: 26 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 22 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <span className="pill" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pill-bg)', padding: '5px 10px', fontSize: 11, fontWeight: 700 }}>
-            <i className="hgi-stroke hgi-favourite" style={{ color: 'var(--accent)', fontSize: 13 }} />
-            {player.hearts_remaining}/5
-          </span>
-          <span className="pill" style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pill-bg)', padding: '5px 10px', fontSize: 11, fontWeight: 700 }}>
-            <i className="hgi-stroke hgi-coins-01" style={{ color: 'var(--amber)', fontSize: 13 }} />
-            {player.coins}
-          </span>
-        </div>
-        <span style={{ fontSize: 11, color: 'var(--text-5)' }}>{player.nickname} {player.avatar}</span>
-      </div>
+  function handlePlay() {
+    if (canPlayFree) startGame();
+    else setSheet('hearts');
+  }
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-        <button
-          onClick={handlePlay}
+  return (
+    <div className="screen">
+      {/* A real box, not display:contents — `filter` needs one to blur. */}
+      <div
+        className={sheet ? 'blurred' : undefined}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+      >
+        <Ambient washTop={180} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 24 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <span className="chip">
+              <i className="hgi-stroke hgi-favourite" style={{ color: 'var(--pink)', fontSize: 14 }} />
+              {player.hearts_remaining}/{DAILY_HEARTS}
+            </span>
+            <span className="chip">
+              <i className="hgi-stroke hgi-coins-01" style={{ color: 'var(--amber)', fontSize: 14 }} />
+              {player.coins}
+            </span>
+          </div>
+          <Orb avatar={player.avatar} size={40} ring="var(--accent)" />
+        </div>
+
+        <div
           style={{
-            width: 120,
-            height: 120,
-            borderRadius: '50%',
-            background: 'var(--accent)',
-            border: 'none',
+            flex: 1,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: 'var(--font-head)',
-            fontWeight: 700,
-            fontSize: 20,
-            color: '#fff',
-            boxShadow: '0 0 40px rgba(124,92,255,.55)'
+            gap: 22,
+            position: 'relative'
           }}
         >
-          {canPlayFree ? 'Play' : `Play (${25} coins)`}
-        </button>
-        {!canPlayFree && <div style={{ fontSize: 10, color: 'var(--text-6)' }}>hearts refill tomorrow</div>}
+          <div style={{ position: 'relative', width: 230, height: 230, display: 'grid', placeItems: 'center' }}>
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                border: '1px solid rgba(124,110,246,.25)',
+                animation: 'ringPulse 2.6s ease-out infinite'
+              }}
+            />
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 26,
+                borderRadius: '50%',
+                border: '1px solid rgba(124,110,246,.35)',
+                animation: 'ringPulse 2.6s ease-out .6s infinite'
+              }}
+            />
+            <button
+              onClick={handlePlay}
+              className="pulse"
+              style={{
+                width: 158,
+                height: 158,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 35% 30%,#9184ff,var(--accent-deep) 70%)',
+                border: 'none',
+                color: '#fff',
+                fontFamily: 'var(--font-head)',
+                fontWeight: 700,
+                fontSize: 28,
+                letterSpacing: 1,
+                position: 'relative'
+              }}
+            >
+              Play
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--text-3)' }}>
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: 'var(--green)',
+                boxShadow: '0 0 8px rgba(56,217,122,.8)'
+              }}
+            />
+            {state.onlineCount} {state.onlineCount === 1 ? 'player' : 'players'} online
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-outline" style={{ flex: 1 }} onClick={() => navigate('/leaderboard')}>
+            <i className="hgi-stroke hgi-medal-01" style={{ fontSize: 15, color: 'var(--amber)' }} />
+            Leaderboard
+          </button>
+          <button className="btn-outline" style={{ flex: 1 }} onClick={() => setSheet('how')}>
+            <i className="hgi-stroke hgi-book-01" style={{ fontSize: 15, color: 'var(--accent-2)' }} />
+            How to play
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-        <button className="btn-outline" style={{ flex: 1 }} onClick={() => navigate('/leaderboard')}>
-          <i className="hgi-stroke hgi-medal-01" style={{ fontSize: 14 }} />
-          Leaderboard
-        </button>
-        <button className="btn-outline" style={{ flex: 1 }} onClick={() => alert('3 rounds of turn-based chat, then guess the bot. That\'s it!')}>
-          <i className="hgi-stroke hgi-book-01" style={{ fontSize: 14 }} />
-          How to play
-        </button>
+      {sheet && <div className="scrim" onClick={() => setSheet(null)} />}
+
+      {sheet === 'hearts' && (
+        <div className="sheet" role="dialog" aria-label="Out of hearts">
+          <div className="sheet-grab" />
+          <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 20, textAlign: 'center' }}>
+            Out of hearts
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 9, margin: '16px 0 6px' }}>
+            {Array.from({ length: DAILY_HEARTS }, (_, i) => (
+              <i
+                key={i}
+                className="hgi-stroke hgi-favourite pop"
+                style={{ ['--i' as string]: i, fontSize: 22, color: '#33344d' }}
+              />
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
+            Hearts refill in <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>{untilRefill()}</span>
+          </div>
+          <button className="btn-primary" style={{ marginTop: 22 }} onClick={startGame} disabled={!canPayCoins}>
+            <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 16, color: 'var(--amber)' }} />
+            {canPayCoins ? `Play for ${COIN_ENTRY_PRICE} coins` : `Need ${COIN_ENTRY_PRICE} coins`}
+          </button>
+          <button className="btn-text" style={{ width: '100%' }} onClick={() => setSheet(null)}>
+            Come back tomorrow
+          </button>
+        </div>
+      )}
+
+      {sheet === 'how' && <HowToPlay onClose={() => setSheet(null)} />}
+    </div>
+  );
+}
+
+const HOW_STEPS = [
+  {
+    icon: 'hgi-user-group',
+    title: 'Take a seat',
+    body: '4 seats, anonymous code names. 3 are human. 1 is an AI pretending to be.'
+  },
+  {
+    icon: 'hgi-message-01',
+    title: 'Chat 3 rounds',
+    body: 'Turn-based — 20 seconds per turn. Probe, bluff, watch for tells.'
+  },
+  {
+    icon: 'hgi-search-01',
+    title: 'Guess in secret',
+    body: 'Catch the bot for +20 and +5 coins. Miss it and you drop 10.'
+  }
+];
+
+function HowToPlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="modal" role="dialog" aria-label="How to play">
+      <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 21, textAlign: 'center' }}>
+        How to play
       </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 24 }}>
+        {HOW_STEPS.map((s, i) => (
+          <div key={s.title} className="rise" style={{ ['--i' as string]: i + 1, display: 'flex', gap: 14 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'rgba(124,110,246,.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <i className={`hgi-stroke ${s.icon}`} style={{ fontSize: 18, color: 'var(--accent-2)' }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13.5 }}>{s.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginTop: 2 }}>{s.body}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 22, flexWrap: 'wrap' }}>
+        {['3 rounds', '20s turns', '~3 min games'].map((f) => (
+          <span
+            key={f}
+            style={{
+              border: '1px solid rgba(255,255,255,.12)',
+              borderRadius: 999,
+              padding: '5px 12px',
+              fontSize: 10,
+              color: 'var(--text-3)',
+              fontWeight: 700
+            }}
+          >
+            {f}
+          </span>
+        ))}
+      </div>
+
+      <button className="btn-primary" style={{ marginTop: 24 }} onClick={onClose}>
+        Got it
+      </button>
     </div>
   );
 }

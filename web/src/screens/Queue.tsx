@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { Orb } from '../components/Orb';
 
 export function Queue() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export function Queue() {
 
   useEffect(() => {
     if (state.queueBlocked) {
-      alert('You need a heart or 25 coins to queue up. Come back tomorrow, or coins are on the way in a later update.');
+      alert('You need a heart or 25 coins to queue up. Come back tomorrow when hearts refill.');
       navigate('/home');
     }
   }, [state.queueBlocked, navigate]);
@@ -32,55 +33,126 @@ export function Queue() {
   const slots = Array.from({ length: 3 }, (_, i) => i < state.queueSize - 1);
 
   return (
-    <div className="screen" style={{ paddingBottom: 22 }}>
+    <div className="screen">
       <div className="topnav">
         <button className="icon-btn back" onClick={cancel} aria-label="Cancel">
-          <i className="hgi-stroke hgi-cancel-01" />
+          <i className="hgi-stroke hgi-cancel-01" style={{ fontSize: 15 }} />
         </button>
-        <span className="pill" style={{ border: '1px solid var(--border)', color: 'var(--text-2)', fontWeight: 700, fontSize: 11, padding: '5px 14px' }}>
-          FINDING HUMANS…
+        <span
+          style={{
+            margin: '0 auto',
+            border: '1px solid rgba(124,110,246,.4)',
+            color: 'var(--text-2)',
+            fontWeight: 800,
+            fontSize: 11.5,
+            letterSpacing: 1.5,
+            padding: '8px 18px',
+            borderRadius: 999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          FINDING HUMANS
+          <span style={{ display: 'inline-flex', gap: 3 }}>
+            {[0, 0.2, 0.4].map((d) => (
+              <span
+                key={d}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  animation: `blink 1.2s ease ${d}s infinite`
+                }}
+              />
+            ))}
+          </span>
         </span>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-5)', marginTop: 2, textAlign: 'center' }}>
-        {state.onlineCount} players online
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 7,
+          fontSize: 11,
+          color: 'var(--text-3)',
+          marginTop: 8
+        }}
+      >
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: 'var(--green)',
+            boxShadow: '0 0 8px rgba(56,217,122,.8)'
+          }}
+        />
+        {state.onlineCount} online
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#2a2c46', boxShadow: '0 0 0 3px var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
-            {state.player?.avatar}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ borderRadius: '50%', animation: 'ringPulse 2.4s ease-out infinite' }}>
+            <Orb avatar={state.player?.avatar ?? '🦊'} size={62} ring="var(--accent)" />
           </div>
-          <span style={{ fontSize: 9 }}>you</span>
+          <span style={{ fontSize: 10.5, fontWeight: 700 }}>you</span>
         </div>
+
         {slots.map((filled, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: '50%',
-                border: filled ? 'none' : '2px dashed #35374a',
-                background: filled ? '#2a2c46' : 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#35374a',
-                fontWeight: 800
-              }}
-            >
-              {filled ? '✓' : '?'}
-            </div>
-            <span style={{ fontSize: 9, color: 'var(--text-6)' }}>{filled ? 'ready' : '…'}</span>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            {filled ? (
+              <div
+                className="pop"
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: '50%',
+                  background: 'var(--surface)',
+                  border: '1px solid rgba(255,255,255,.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <i className="hgi-stroke hgi-checkmark-circle-02" style={{ fontSize: 22, color: 'var(--green)' }} />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: '50%',
+                  border: '2px dashed rgba(255,255,255,.14)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-5)',
+                  fontFamily: 'var(--font-head)',
+                  fontWeight: 600,
+                  fontSize: 20,
+                  animation: `dashPulse 2s ease-in-out ${i * 0.5}s infinite`
+                }}
+              >
+                ?
+              </div>
+            )}
+            <span style={{ fontSize: 10.5, color: filled ? 'var(--text-3)' : 'var(--text-5)' }}>
+              {filled ? 'ready' : '…'}
+            </span>
           </div>
         ))}
       </div>
 
       <button className="btn-outline" onClick={copyInvite}>
-        <i className="hgi-stroke hgi-link-01" style={{ fontSize: 14 }} />
+        <i className="hgi-stroke hgi-link-01" style={{ fontSize: 15 }} />
         {copied ? 'Link copied' : 'Copy invite link'}
       </button>
-      <div style={{ fontSize: 9.5, color: 'var(--text-6)', marginTop: 10, textAlign: 'center' }}>
-        free to wait — hearts not spent yet
+      <div style={{ fontSize: 10.5, color: 'var(--text-5)', marginTop: 12, textAlign: 'center' }}>
+        free to wait — hearts aren't spent yet
       </div>
     </div>
   );

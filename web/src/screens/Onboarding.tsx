@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { AVATAR_POOL, Orb } from '../components/Orb';
 
-const AVATAR_POOL = ['🦝', '🐑', '🐺', '🦄', '🦉', '🐴', '🐼', '🦔', '🐨', '🐱', '🐶', '🦊'];
+const MAX_NICK = 24;
 
 export function Onboarding() {
   const navigate = useNavigate();
@@ -30,71 +31,68 @@ export function Onboarding() {
   }
 
   return (
-    <div className="screen" style={{ paddingBottom: 24 }}>
+    <div className="screen">
       <div className="topnav">
         <button className="icon-btn back" onClick={() => navigate(-1)} aria-label="Back">
           <i className="hgi-stroke hgi-arrow-left-01" />
         </button>
       </div>
 
-      <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 17, marginTop: 8 }}>Pick your look</div>
+      <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 22, marginTop: 14 }}>
+        Pick your look
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>
+        This is who your friends see — the table never will.
+      </div>
 
-      <input
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        placeholder={'Nickname… "BlueberryQueen"'}
-        maxLength={24}
-        style={{
-          width: '100%',
-          background: 'var(--pill-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: 999,
-          padding: '12px 16px',
-          margin: '14px 0',
-          color: 'var(--text-1)',
-          fontSize: 13,
-          outline: 'none'
-        }}
-      />
+      <div className="field" style={{ margin: '20px 0' }}>
+        <input
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value.slice(0, MAX_NICK))}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          placeholder="BlueberryQueen"
+          maxLength={MAX_NICK}
+          aria-label="Nickname"
+        />
+        {nickname.length === 0 && (
+          <span style={{ width: 2, height: 16, background: 'var(--accent)', animation: 'blink 1.1s step-end infinite' }} />
+        )}
+        <span style={{ fontSize: 10, color: 'var(--text-5)' }}>
+          {nickname.length}/{MAX_NICK}
+        </span>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, width: '100%' }}>
-        {AVATAR_POOL.map((a) => (
-          <button
-            key={a}
-            onClick={() => setAvatar(a)}
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: '50%',
-              background: 'var(--pill-bg)',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 22,
-              boxShadow: avatar === a ? '0 0 0 3px var(--accent)' : undefined
-            }}
-          >
-            {a}
-          </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, justifyItems: 'center' }}>
+        {AVATAR_POOL.map((a, i) => (
+          <div key={a} className="pop" style={{ ['--i' as string]: i }}>
+            <Orb avatar={a} selected={avatar === a} onClick={() => setAvatar(a)} />
+          </div>
         ))}
       </div>
 
       <div
         style={{
-          border: '1px solid var(--border)',
-          color: '#a89bff',
+          alignSelf: 'center',
+          border: '1px solid rgba(124,110,246,.4)',
+          color: 'var(--accent-2)',
           borderRadius: 999,
-          padding: '6px 14px',
-          fontSize: 10,
-          marginTop: 16,
-          alignSelf: 'center'
+          padding: '7px 16px',
+          fontSize: 11,
+          marginTop: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
         }}
       >
-        ✨ +50 coins for signing up
+        <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 13, color: 'var(--amber)' }} />
+        +50 coins for signing up
       </div>
 
-      {error && <div style={{ color: 'var(--pink)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>{error}</div>}
+      {error && (
+        <div className="shake" style={{ color: 'var(--pink)', fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+          {error}
+        </div>
+      )}
 
       <button className="btn-primary" style={{ marginTop: 'auto' }} onClick={submit} disabled={busy}>
         {busy ? 'One sec…' : "Let's go"}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { Confetti } from '../components/Ambient';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
 
@@ -13,7 +14,13 @@ export function Result() {
   const reveal = state.reveal;
   if (!result || !reveal) return <div className="screen" />;
 
-  const outcomeLabel = result.outcome === 'correct' ? 'You caught the bot!' : result.outcome === 'wrong' ? "You picked wrong…" : "You didn't guess in time";
+  const correct = result.outcome === 'correct';
+  const outcomeLabel = correct
+    ? 'You caught the bot!'
+    : result.outcome === 'wrong'
+      ? 'You picked wrong…'
+      : "You didn't guess in time";
+  const botSeat = state.roster.find((s) => s.seatIndex === reveal.botSeatIndex);
 
   async function share() {
     if (!result) return;
@@ -50,69 +57,159 @@ export function Result() {
   }
 
   return (
-    <div className="screen" style={{ alignItems: 'center', paddingBottom: 18 }}>
-      <div style={{ paddingTop: 26, fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 18, color: 'var(--accent)', textAlign: 'center' }}>
+    <div className="screen" style={{ alignItems: 'center' }}>
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: -100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 420,
+          height: 420,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'}, transparent 65%)`
+        }}
+      />
+      {correct && <Confetti />}
+
+      <div
+        style={{
+          paddingTop: 40,
+          fontFamily: 'var(--font-head)',
+          fontWeight: 700,
+          fontSize: 26,
+          textAlign: 'center',
+          color: correct ? 'var(--green)' : 'var(--pink)',
+          textShadow: correct ? '0 0 24px rgba(56,217,122,.4)' : undefined
+        }}
+      >
         {outcomeLabel}
       </div>
+      {result.outcome === 'wrong' && (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
+          {botSeat?.codeName} fooled you. It happens to the best.
+        </div>
+      )}
+      {result.outcome === 'no_guess' && (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
+          The clock ran out — {botSeat?.codeName} was the bot.
+        </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
-        <span className="pill" style={{ background: 'var(--pill-bg)', padding: '5px 12px', fontSize: 11, fontWeight: 700 }}>
-          {result.scoreDelta >= 0 ? '+' : ''}{result.scoreDelta} score
+      <div className={correct ? undefined : 'shake'} style={{ display: 'flex', gap: 10, margin: '20px 0 6px' }}>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)',
+            border: `1px solid ${correct ? 'rgba(56,217,122,.4)' : 'rgba(255,92,138,.35)'}`,
+            padding: '8px 16px',
+            fontSize: 13,
+            fontWeight: 800,
+            borderRadius: 999,
+            color: correct ? 'var(--green)' : 'var(--pink)'
+          }}
+        >
+          {result.scoreDelta >= 0 ? '+' : ''}
+          {result.scoreDelta} score
         </span>
-        <span className="pill" style={{ background: 'var(--pill-bg)', padding: '5px 12px', fontSize: 11, fontWeight: 700 }}>
-          {result.coinDelta >= 0 ? '+' : ''}{result.coinDelta} coins
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: result.coinDelta > 0 ? 'rgba(255,207,61,.1)' : 'var(--panel)',
+            border: `1px solid ${result.coinDelta > 0 ? 'rgba(255,207,61,.35)' : 'rgba(255,255,255,.1)'}`,
+            padding: '8px 16px',
+            fontSize: 13,
+            fontWeight: 800,
+            borderRadius: 999,
+            color: result.coinDelta > 0 ? 'var(--amber)' : 'var(--text-3)'
+          }}
+        >
+          <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 14 }} />+{result.coinDelta} coins
         </span>
       </div>
 
-      <div style={{ width: '100%', borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {reveal.identities.map((identity) => {
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>
+        Leaderboard <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>#{result.leaderboardRank}</span>
+      </div>
+
+      <div
+        style={{
+          width: '100%',
+          borderTop: '1px solid rgba(255,255,255,.07)',
+          marginTop: 24,
+          paddingTop: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10
+        }}
+      >
+        {reveal.identities.map((identity, i) => {
           const seat = state.roster.find((s) => s.seatIndex === identity.seatIndex);
           if (!seat) return null;
           const guess = reveal.guesses.find((g) => g.seatIndex === identity.seatIndex);
           const isMe = identity.seatIndex === state.mySeatIndex;
+          const guessedRight = guess?.guessSeatIndex === reveal.botSeatIndex;
           return (
             <div
               key={identity.seatIndex}
+              className="rise"
               style={{
+                ['--i' as string]: i,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                background: identity.isBot ? 'rgba(124,92,255,.14)' : 'var(--pill-bg)',
-                borderRadius: 12,
-                padding: '8px 10px'
+                gap: 12,
+                background: identity.isBot ? 'rgba(124,110,246,.14)' : 'var(--panel)',
+                border: identity.isBot ? '1px solid rgba(124,110,246,.35)' : '1px solid transparent',
+                borderRadius: 16,
+                padding: '11px 14px'
               }}
             >
-              <SeatAvatar letter={seat.avatar} color={seat.color} size={30} />
-              <span style={{ fontSize: 11.5, flex: 1, color: identity.isBot ? undefined : isMe ? 'var(--text-1)' : 'var(--text-2)' }}>
-                {seat.codeName} {identity.isBot ? '— the bot' : isMe ? '(you)' : ''}
+              <SeatAvatar codeName={seat.codeName} color={seat.color} size={36} ringWidth={2} />
+              <span style={{ fontSize: 13, flex: 1, fontWeight: identity.isBot ? 700 : 400 }}>
+                {seat.codeName}
+                {identity.isBot ? (
+                  ' — the bot'
+                ) : (
+                  <span style={{ color: 'var(--text-3)' }}>
+                    {' · '}
+                    {isMe ? 'you, ' : ''}"{identity.nickname}" {identity.avatar}
+                  </span>
+                )}
               </span>
               {identity.isBot ? (
-                <i className="hgi-stroke hgi-robot-01" style={{ fontSize: 14, color: '#a89bff' }} />
-              ) : guess ? (
-                guess.guessSeatIndex === null ? (
-                  <span style={{ fontSize: 9, color: 'var(--text-6)' }}>no guess</span>
-                ) : (
-                  <i
-                    className={`hgi-stroke ${guess.guessSeatIndex === reveal.botSeatIndex ? 'hgi-checkmark-circle-02' : 'hgi-cancel-circle'}`}
-                    style={{ fontSize: 15, color: guess.guessSeatIndex === reveal.botSeatIndex ? 'var(--text-2)' : 'var(--text-6)' }}
-                  />
-                )
-              ) : null}
+                <i className="hgi-stroke hgi-bot" style={{ fontSize: 17, color: 'var(--accent-2)' }} />
+              ) : (
+                <i
+                  className={`hgi-stroke ${guessedRight ? 'hgi-checkmark-circle-02' : 'hgi-cancel-circle'}`}
+                  style={{ fontSize: 16, color: guessedRight ? 'var(--green)' : 'var(--text-5)' }}
+                />
+              )}
             </div>
           );
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 14, width: '100%' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 16, width: '100%' }}>
         <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>
-          <i className="hgi-stroke hgi-share-01" style={{ fontSize: 13 }} />
+          <i className="hgi-stroke hgi-share-01" style={{ fontSize: 14 }} />
           {sharing ? 'Saving…' : 'Share'}
         </button>
-        <button className="btn-primary" style={{ flex: 1 }} onClick={playAgain}>
-          Play again
+        <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
+          {correct ? 'Play again' : 'Run it back'}
         </button>
       </div>
-      <button onClick={() => { goHome(); navigate('/home'); }} style={{ background: 'none', border: 'none', color: 'var(--text-6)', fontSize: 11, marginTop: 10 }}>
+      <button
+        className="btn-text"
+        onClick={() => {
+          goHome();
+          navigate('/home');
+        }}
+      >
         Back to home
       </button>
     </div>

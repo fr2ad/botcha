@@ -16,52 +16,94 @@ export function Guess() {
   }, [state.phase, navigate]);
 
   const locked = state.myGuess !== null;
+  const candidates = state.roster.filter((s) => s.seatIndex !== state.mySeatIndex);
 
   return (
-    <div className="screen" style={{ alignItems: 'center', paddingBottom: 20 }}>
-      <div className="topnav">
-        <span style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 16 }}>Who's the bot?</span>
+    <div className="screen" style={{ alignItems: 'center' }}>
+      <div style={{ padding: '28px 0 6px', fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 22 }}>
+        Who's the bot?
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>3 rounds of chat. One shot.</div>
+
+      <div style={{ margin: '24px 0 28px' }}>
+        {state.guessDeadline && (
+          <CountdownRing deadline={state.guessDeadline} totalMs={GUESS_WINDOW_MS} size={116} label="TO VOTE" />
+        )}
       </div>
 
-      {state.guessDeadline && (
-        <div style={{ margin: '14px 0' }}>
-          <CountdownRing deadline={state.guessDeadline} totalMs={GUESS_WINDOW_MS} size={110} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
+        {candidates.map((seat, i) => {
+          const selected = state.myGuess === seat.seatIndex;
+          return (
+            <button
+              key={seat.seatIndex}
+              onClick={() => !locked && submitGuess(seat.seatIndex)}
+              disabled={locked}
+              className="rise"
+              style={{
+                ['--i' as string]: i,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                textAlign: 'left',
+                background: selected ? 'rgba(124,110,246,.12)' : 'var(--panel)',
+                border: selected ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
+                boxShadow: selected ? '0 0 26px rgba(124,110,246,.4)' : undefined,
+                borderRadius: 18,
+                padding: '14px 16px',
+                color: 'var(--text-1)',
+                opacity: locked && !selected ? 0.55 : 1,
+                cursor: locked ? 'default' : 'pointer',
+                transition: 'opacity .25s ease, box-shadow .25s ease, background .25s ease'
+              }}
+            >
+              <SeatAvatar codeName={seat.codeName} color={seat.color} size={46} />
+              <span style={{ flex: 1 }}>
+                <span style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 15, display: 'block' }}>
+                  {seat.codeName}
+                </span>
+                {selected && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--accent-2)',
+                      fontWeight: 800,
+                      letterSpacing: 1,
+                      marginTop: 2,
+                      display: 'block'
+                    }}
+                  >
+                    LOCKED IN
+                  </span>
+                )}
+              </span>
+              {selected && (
+                <i className="hgi-stroke hgi-checkmark-circle-02 pop" style={{ fontSize: 22, color: 'var(--accent-2)' }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 'auto', paddingTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {Array.from({ length: state.votedTotal }, (_, i) => (
+            <span
+              key={i}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: i < state.votedCount ? 'var(--accent)' : 'rgba(255,255,255,.14)',
+                boxShadow: i < state.votedCount ? '0 0 8px rgba(124,110,246,.7)' : undefined,
+                transition: 'background .3s ease, box-shadow .3s ease'
+              }}
+            />
+          ))}
         </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
-        {state.roster
-          .filter((s) => s.seatIndex !== state.mySeatIndex)
-          .map((seat) => {
-            const selected = state.myGuess === seat.seatIndex;
-            return (
-              <button
-                key={seat.seatIndex}
-                onClick={() => !locked && submitGuess(seat.seatIndex)}
-                style={{
-                  background: 'var(--pill-bg)',
-                  border: selected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                  boxShadow: selected ? '0 0 14px rgba(124,92,255,.5)' : undefined,
-                  borderRadius: 14,
-                  padding: 12,
-                  textAlign: 'center',
-                  color: 'var(--text-1)',
-                  cursor: locked ? 'default' : 'pointer',
-                  opacity: locked && !selected ? 0.6 : 1
-                }}
-              >
-                <div style={{ margin: '0 auto 4px', width: 38 }}>
-                  <SeatAvatar letter={seat.avatar} color={seat.color} size={38} />
-                </div>
-                {seat.codeName}
-                {selected && <div style={{ fontSize: 8.5, color: '#a89bff', marginTop: 2 }}>locked in</div>}
-              </button>
-            );
-          })}
-      </div>
-
-      <div style={{ marginTop: 'auto', paddingTop: 14, fontSize: 10, color: 'var(--text-6)' }}>
-        {state.votedCount} of {state.votedTotal} players have voted
+        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+          {state.votedCount} of {state.votedTotal} voted
+        </div>
       </div>
     </div>
   );

@@ -3,15 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
+import { Wordmark } from '../components/Wordmark';
 
 const TURN_WINDOW_MS = 20_000;
 const MAX_LEN = 200;
-const POSITIONS: Array<{ top?: number | string; bottom?: number | string; left?: number | string; right?: number | string; transform: string }> = [
-  { top: 0, left: '50%', transform: 'translateX(-50%)' },
-  { top: '50%', right: 0, transform: 'translateY(-50%)' },
-  { bottom: 0, left: '50%', transform: 'translateX(-50%)' },
-  { top: '50%', left: 0, transform: 'translateY(-50%)' }
-];
+const TOTAL_ROUNDS = 3;
 
 function mentionToken(codeName: string) {
   return '@' + codeName.replace(/\s+/g, '');
@@ -25,7 +21,7 @@ function renderWithMentions(text: string, roster: { codeName: string }[]) {
   const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
   return text.split(pattern).map((part, i) =>
     tokens.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
-      <span key={i} style={{ color: 'var(--accent)', fontWeight: 700 }}>
+      <span key={i} style={{ color: 'var(--accent-2)', fontWeight: 700 }}>
         {part}
       </span>
     ) : (
@@ -45,7 +41,11 @@ export function Table() {
     if (state.phase === 'guess') navigate('/guess');
     if (state.phase === 'idle') navigate('/home');
     if (state.phase === 'cancelled') {
-      alert(state.cancelReason === 'not_enough_players' ? 'Not enough players left — your heart was refunded.' : 'Game cancelled.');
+      alert(
+        state.cancelReason === 'not_enough_players'
+          ? 'Not enough players left — your heart was refunded.'
+          : 'Game cancelled.'
+      );
       navigate('/home');
     }
   }, [state.phase, state.cancelReason, navigate]);
@@ -70,84 +70,150 @@ export function Table() {
   }
 
   return (
-    <div className="screen" style={{ paddingBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0' }}>
-        <span style={{ fontFamily: 'var(--font-head)', fontSize: 12, letterSpacing: 2, color: 'var(--accent)' }}>BOTCHA</span>
-        <span className="pill" style={{ fontSize: 11, color: 'var(--text-4)', border: '1px solid var(--border)', padding: '5px 12px' }}>
-          Round <b style={{ color: 'var(--text-1)' }}>{state.round}</b> / 3
+    <div
+      className="screen"
+      style={{ paddingLeft: 20, paddingRight: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0 14px' }}>
+        <span style={{ color: 'var(--accent-2)' }}>
+          <Wordmark size={14} />
+        </span>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 11.5,
+            color: 'var(--text-3)',
+            border: '1px solid rgba(255,255,255,.1)',
+            padding: '6px 14px',
+            borderRadius: 999
+          }}
+        >
+          Round <b style={{ color: 'var(--text-1)' }}>{state.round}</b> / {TOTAL_ROUNDS}
+          <span style={{ display: 'inline-flex', gap: 4 }}>
+            {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: i < state.round ? 'var(--accent)' : 'rgba(255,255,255,.15)'
+                }}
+              />
+            ))}
+          </span>
         </span>
       </div>
 
-      <div style={{ position: 'relative', height: 220, margin: '4px 0 16px' }}>
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%,-50%)',
-            width: 96,
-            height: 96,
-            borderRadius: '50%',
-            background: 'var(--pill-bg)',
-            border: '1px solid var(--border)'
-          }}
-        />
-        {state.roster.map((seat, i) => {
-          const pos = POSITIONS[i] ?? POSITIONS[0];
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '6px 0 14px' }}>
+        {state.roster.map((seat) => {
           const active = state.turnSeatIndex === seat.seatIndex;
           const silent = state.silentSeats.includes(seat.seatIndex);
+          const isYou = seat.seatIndex === state.mySeatIndex;
           return (
             <div
               key={seat.seatIndex}
+              onClick={() => mention(seat.codeName)}
+              title={isMyTurn ? `Mention ${seat.codeName} — doesn't force a reply` : undefined}
               style={{
-                position: 'absolute',
-                ...pos,
-                textAlign: 'center',
-                width: 88,
-                background: active ? 'var(--accent-soft)' : 'transparent',
-                borderRadius: 14,
-                padding: 6
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                // Fixed width: animating it reflowed the strip and shunted the
+                // other seats sideways every turn. The ring swap marks the speaker.
+                width: 92,
+                cursor: isMyTurn ? 'pointer' : 'default'
               }}
             >
               {active && state.turnDeadline ? (
-                <div style={{ margin: '0 auto 4px', width: 46 }}>
-                  <CountdownRing deadline={state.turnDeadline} totalMs={TURN_WINDOW_MS} size={46} />
-                </div>
+                <CountdownRing deadline={state.turnDeadline} totalMs={TURN_WINDOW_MS} size={64} color={seat.color} />
               ) : (
-                <div style={{ margin: '0 auto 4px', width: 44 }}>
-                  <SeatAvatar letter={seat.avatar} color={seat.color} size={44} />
-                </div>
+                <SeatAvatar codeName={seat.codeName} color={seat.color} size={50} />
               )}
-              <div
-                onClick={() => mention(seat.codeName)}
-                style={{ fontSize: 11, fontWeight: 600, cursor: isMyTurn ? 'pointer' : 'default' }}
-                title={isMyTurn ? `Mention ${seat.codeName} — doesn't force a reply` : undefined}
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: active ? 'var(--text-1)' : 'var(--text-2)',
+                  textAlign: 'center'
+                }}
               >
                 {seat.codeName}
-                {seat.seatIndex === state.mySeatIndex ? ' (you)' : ''}
-              </div>
-              {silent && (
-                <div style={{ fontSize: 8, color: 'var(--amber)', border: '1px solid var(--amber)', borderRadius: 8, padding: '1px 6px', marginTop: 2, display: 'inline-block' }}>
+                {isYou && <span style={{ color: 'var(--accent-2)' }}> (you)</span>}
+              </span>
+              {active && (
+                <span
+                  style={{
+                    fontSize: 8.5,
+                    fontWeight: 800,
+                    letterSpacing: 1,
+                    color: seat.color,
+                    background: `${seat.color}1f`,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  SPEAKING
+                </span>
+              )}
+              {silent && !active && (
+                <span
+                  style={{
+                    fontSize: 8,
+                    fontWeight: 800,
+                    letterSpacing: 1,
+                    color: 'var(--amber)',
+                    border: '1px solid rgba(255,207,61,.5)',
+                    padding: '1px 7px',
+                    borderRadius: 999
+                  }}
+                >
                   SILENT
-                </div>
+                </span>
               )}
             </div>
           );
         })}
       </div>
 
-      <div style={{ background: 'var(--pill-bg)', borderRadius: 16, padding: 12, flex: 1, overflowY: 'auto', minHeight: 160, maxHeight: 220 }}>
-        <div style={{ fontSize: 10, letterSpacing: 1.5, color: 'var(--text-5)', marginBottom: 8 }}>TABLE LOG</div>
+      <div
+        style={{
+          background: 'var(--log)',
+          border: '1px solid rgba(255,255,255,.06)',
+          borderRadius: 20,
+          padding: 16,
+          flex: 1,
+          minHeight: 180,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12
+        }}
+      >
+        <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800 }}>TABLE LOG</div>
+        {state.messages.length === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text-5)' }}>Nobody's spoken yet. First turn is starting…</div>
+        )}
         {state.messages.map((m, i) => {
           const seat = seatByIndex(m.seatIndex);
+          const color = seat?.color ?? 'var(--text-5)';
           return (
-            <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
-              <div style={{ flexShrink: 0 }}>
-                <SeatAvatar letter={seat?.avatar ?? '?'} color={seat?.color ?? '#333'} size={20} />
-              </div>
+            <div key={i} className="rise" style={{ display: 'flex', gap: 9 }}>
+              <SeatAvatar codeName={seat?.codeName ?? '?'} color={color} size={24} ringWidth={2} />
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600 }}>{seat?.codeName}</div>
-                <div style={{ fontSize: 12.5, color: '#cfd2e0' }}>{renderWithMentions(m.text, state.roster)}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, color }}>
+                  {seat?.codeName}
+                  {m.seatIndex === state.mySeatIndex && (
+                    <span style={{ color: 'var(--text-5)', fontWeight: 600 }}> · you</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, color: '#cfd2e0', lineHeight: 1.45 }}>
+                  {renderWithMentions(m.text, state.roster)}
+                </div>
               </div>
             </div>
           );
@@ -160,11 +226,13 @@ export function Table() {
           marginTop: 14,
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          background: isMyTurn ? 'rgba(124,92,255,.1)' : 'var(--pill-bg)',
-          border: `1px solid ${isMyTurn ? 'var(--accent)' : 'var(--border)'}`,
-          borderRadius: 14,
-          padding: '10px 12px'
+          gap: 10,
+          background: isMyTurn ? 'rgba(124,110,246,.12)' : 'var(--log)',
+          border: `1px solid ${isMyTurn ? 'var(--accent)' : 'rgba(255,255,255,.08)'}`,
+          borderRadius: 999,
+          padding: '12px 16px',
+          opacity: isMyTurn ? 1 : 0.7,
+          transition: 'background .2s ease, border-color .2s ease, opacity .2s ease'
         }}
       >
         <input
@@ -175,30 +243,48 @@ export function Table() {
           placeholder={isMyTurn ? 'Say something before time runs out…' : 'Wait for your turn…'}
           disabled={!isMyTurn}
           maxLength={MAX_LEN}
-          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-1)', fontSize: 13 }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: 'var(--text-1)',
+            fontSize: 13
+          }}
         />
         <span style={{ fontSize: 10, color: 'var(--text-5)' }}>{MAX_LEN - draft.length}</span>
         <button
           onClick={submit}
           disabled={!isMyTurn || !draft.trim()}
+          aria-label="Send"
           style={{
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             borderRadius: '50%',
             border: 'none',
-            background: 'var(--accent)',
-            color: '#fff',
+            flexShrink: 0,
+            background: isMyTurn && draft.trim() ? 'var(--accent)' : 'rgba(124,110,246,.25)',
+            color: isMyTurn && draft.trim() ? '#fff' : 'rgba(255,255,255,.4)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            opacity: isMyTurn && draft.trim() ? 1 : 0.5
+            justifyContent: 'center'
           }}
-          aria-label="Send"
         >
           <i className="hgi-stroke hgi-sent" style={{ fontSize: 14 }} />
         </button>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-6)', marginTop: 10 }}>
+
+      <div
+        style={{
+          textAlign: 'center',
+          fontSize: 9.5,
+          letterSpacing: 2,
+          color: 'var(--text-5)',
+          marginTop: 12,
+          fontWeight: 800
+        }}
+      >
         ONE OF THESE FOUR IS NOT HUMAN
       </div>
     </div>

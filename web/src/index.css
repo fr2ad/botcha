@@ -1,22 +1,37 @@
+/* Botcha design system — see DESIGN.md. Tokens and keyframes live here only. */
 :root {
-  --page-bg: #0a0a12;
-  --screen-bg: #14162a;
-  --pill-bg: #1f2240;
-  --accent: #7c5cff;
-  --accent-soft: rgba(124, 92, 255, 0.16);
+  --bg-0: #0a0a0f;
+  --bg-1: #12121c;
+  --panel: #171930;
+  --surface: #1a1c2e;
+  --log: #14162a;
+
+  --accent: #7c6ef6;
+  --accent-2: #a89bff;
+  --accent-deep: #6a5ae0;
+
   --text-1: #eef0ff;
   --text-2: #c5c8dd;
-  --text-3: #b8bccb;
-  --text-4: #8f94b3;
-  --text-5: #7d84a8;
-  --text-6: #565a72;
-  --border: #262838;
-  --green: #38d97a;
-  --pink: #ff5c8a;
+  --text-3: #8f94b3;
+  --text-4: #7d84a8;
+  --text-5: #565a72;
+  --line: rgba(255, 255, 255, 0.09);
+
+  /* Seat colors — mirror server/src/config.ts SEAT_CODE_NAMES. */
   --blue: #3d9dff;
+  --pink: #ff5c8a;
+  --green: #38d97a;
   --amber: #ffcf3d;
+
+  --glow: 0 0 28px rgba(124, 110, 246, 0.5);
   --font-head: 'Fredoka', sans-serif;
   --font-body: 'Nunito', sans-serif;
+}
+
+@property --p {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
 }
 
 * {
@@ -31,7 +46,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--page-bg);
+  background: var(--bg-0);
   color: var(--text-1);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -42,6 +57,10 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 input {
   font-family: inherit;
 }
@@ -50,77 +69,33 @@ a {
   color: inherit;
 }
 
+/* ---------- layout ---------- */
+
 .app-shell {
   min-height: 100%;
   display: flex;
   justify-content: center;
-  background: var(--page-bg);
+  background: var(--bg-0);
 }
 
 .screen {
   width: 100%;
   max-width: 430px;
   min-height: 100dvh;
-  background: var(--screen-bg);
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
   display: flex;
   flex-direction: column;
   position: relative;
-  padding: 0 20px;
-}
-
-.pill {
-  border-radius: 999px;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 800;
-  font-family: var(--font-head);
-  font-size: 15px;
-  padding: 14px 0;
-  border-radius: 999px;
-  border: none;
-  text-align: center;
-  width: 100%;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  border: 1px solid var(--border);
-  color: var(--text-2);
-  font-weight: 700;
-  font-size: 12px;
-  border-radius: 999px;
-  background: transparent;
-  padding: 10px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--pill-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  color: var(--text-2);
-  font-size: 16px;
+  overflow: hidden;
+  /* viewport-fit=cover is set in index.html, so keep clear of the notch/home bar. */
+  padding: env(safe-area-inset-top) 24px calc(26px + env(safe-area-inset-bottom));
+  animation: screenIn 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 .topnav {
   display: flex;
   align-items: center;
-  padding: 20px 0 6px;
+  padding: 22px 0 6px;
   position: relative;
 }
 
@@ -133,21 +108,394 @@ a {
   margin: 0 auto;
   font-family: var(--font-head);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 17px;
 }
 
-@keyframes spin-fade {
-  0% {
-    opacity: 0.3;
+/* ---------- controls ---------- */
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 15px 0;
+  border-radius: 999px;
+  border: none;
+  width: 100%;
+  box-shadow: var(--glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.btn-outline {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 12.5px;
+  border-radius: 999px;
+  background: transparent;
+  padding: 13px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: rgba(124, 110, 246, 0.5);
+  color: var(--text-1);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-5);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 10px 0;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: var(--text-2);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 7px 13px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 14px 18px;
+  gap: 10px;
+}
+
+.field input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.field input::placeholder {
+  color: var(--text-5);
+  font-weight: 400;
+}
+
+/* ---------- overlays ---------- */
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 10, 0.58);
+  animation: scrimIn 0.2s ease both;
+  z-index: 2;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  background: var(--panel);
+  border: 1px solid rgba(124, 110, 246, 0.25);
+  border-bottom: none;
+  border-radius: 28px 28px 0 0;
+  padding: 14px 26px 30px;
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.6);
+  animation: sheetUp 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.sheet-grab {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  margin: 0 auto 20px;
+}
+
+.modal {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 50%;
+  z-index: 3;
+  background: var(--panel);
+  border: 1px solid rgba(124, 110, 246, 0.3);
+  border-radius: 26px;
+  padding: 28px 26px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  animation: modalIn 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.blurred {
+  filter: blur(2px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ---------- decoration ---------- */
+
+.ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient .wash {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 110, 246, 0.2), transparent 65%);
+}
+
+.ambient .dot {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-2);
+}
+
+.confetti {
+  position: absolute;
+  top: -16px;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ---------- animation utilities ---------- */
+
+.rise {
+  animation: riseIn 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.pop {
+  animation: popIn 0.3s cubic-bezier(0.2, 1.4, 0.5, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.pulse {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.shake {
+  animation: shake 0.4s ease both;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float1 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(12px, -16px);
+  }
+}
+
+@keyframes float2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-14px, 10px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 36px rgba(124, 110, 246, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 64px rgba(124, 110, 246, 0.8);
+  }
+}
+
+@keyframes ringPulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(124, 110, 246, 0.45);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgba(124, 110, 246, 0);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.2;
   }
   50% {
     opacity: 1;
   }
+}
+
+@keyframes eyeScan {
+  0%,
   100% {
-    opacity: 0.3;
+    transform: translateX(-3px);
+  }
+  50% {
+    transform: translateX(3px);
   }
 }
 
-.loading-dot {
-  animation: spin-fade 1.2s ease infinite;
+@keyframes fall {
+  from {
+    transform: translateY(-20px) rotate(0deg);
+  }
+  to {
+    transform: translateY(860px) rotate(540deg);
+  }
+}
+
+@keyframes dashPulse {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+  50% {
+    border-color: rgba(124, 110, 246, 0.7);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+/* Motion is decorative here — none of it carries information on its own. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
