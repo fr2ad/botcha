@@ -11,7 +11,8 @@ Botcha: multiplayer reverse-Turing-test web game. 3 humans + 1 AI Bot chat anony
 ```bash
 # backend — server/, http://localhost:8787
 cd server && npm install && npm run dev     # tsx watch
-npm run typecheck                            # tsc --noEmit, no test suite exists
+npm run typecheck                            # tsc --noEmit
+npx tsx src/config.test.ts                   # the only test: assert-based self-check on seat identities
 
 # frontend — web/, http://localhost:5173
 cd web && npm install && npm run dev         # vite
@@ -21,7 +22,9 @@ npm run lint                                 # oxlint
 
 No `OPENROUTER_API_KEY` set → bot auto-falls-back to mock replies (`server/src/bot/client.ts`), so the full loop runs with zero external deps. To use a real model, copy `server/.env.example` to `server/.env`.
 
-There is no test suite in either package — verify changes by running both dev servers and playing through the loop (needs 3 human tabs; each browser tab is tracked via `botcha_player_id` in localStorage, so separate/incognito tabs simulate separate players).
+There is no test framework in either package. `server/src/config.test.ts` is a bare `node:assert` script run directly with tsx — follow that pattern (one runnable file, no framework, no fixtures) if new logic needs a check.
+
+Verify real changes by running both dev servers and playing through the loop (needs 3 human tabs; each browser tab is tracked via `botcha_player_id` in localStorage, so separate/incognito tabs simulate separate players). `.claude/launch.json` defines both servers as `web` and `server` for the preview tooling.
 
 ## Architecture
 
@@ -44,6 +47,10 @@ Single VPS, single Node process philosophy — no microservices. Two packages, b
 ### Client-side state flow
 
 `web/src/GameContext.tsx` is the single source of truth: one `useReducer` whose action types are **the literal WebSocket message types** the server sends (`turn.begin`, `turn.message`, `guess.begin`, `reveal`, `game.result`, etc. — `ws.onmessage` dispatches the parsed frame directly, no translation layer). Screens under `web/src/screens/` are effectively one-per-`GamePhase`, driven by `state.phase`; routing in `App.tsx` just guards each route on `loggedIn` and otherwise trusts `GameContext` to reflect phase via component logic, not route params. Reconnect-on-close is automatic (1.5s retry) unless the socket was closed intentionally.
+
+### UI / styling
+
+[DESIGN.md](DESIGN.md) is the source of truth for look, motion, and screen anatomy — read it before touching `web/src/index.css` or anything under `web/src/screens/`. Every color, radius, shadow, and easing is a `:root` token in `index.css`; use the variable, never the literal. Seat colors are rings and accents only, never fills.
 
 When adding a new server→client event: add the WS message shape server-side, add a case to the reducer in `GameContext.tsx` matching that `type` string, and consume the new state in the relevant screen — there is no intermediate DTO/mapping step.
 
