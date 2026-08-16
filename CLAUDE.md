@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Botcha: multiplayer reverse-Turing-test web game. 3 humans + 1 AI Bot chat anonymously in turn-based rounds, then privately guess which Seat is the Bot. Full product spec, glossary, and ADRs live one level up: `../docs/SPEC.md`, `../CONTEXT.md`, `../docs/adr/`. Read `../CONTEXT.md` before touching game-loop code — it fixes exact terms (Seat, Turn, Table Round, Guess, Silent Player, Heart) and the ones to avoid (slot, vote, AFK, lobby); the codebase uses this vocabulary literally in type names and event names.
+Botcha: multiplayer reverse-Turing-test web game. 3 humans + 1 AI Bot chat anonymously in turn-based rounds, then privately guess which Seat is the Bot. Spec, glossary, and decisions are one merged document: [docs/SPEC.md](docs/SPEC.md). Read its §2 vocabulary before touching game-loop code — it fixes exact terms (Seat, Turn, Table Round, Guess, Silent Player, Heart) and the ones to avoid (slot, vote, AFK, lobby); the codebase uses this vocabulary literally in type names and event names. §10 lists where the shipped code deliberately diverges from the spec.
 
 ## Commands
 
@@ -24,7 +24,11 @@ No `OPENROUTER_API_KEY` set → bot auto-falls-back to mock replies (`server/src
 
 There is no test framework in either package. `server/src/config.test.ts` is a bare `node:assert` script run directly with tsx — follow that pattern (one runnable file, no framework, no fixtures) if new logic needs a check.
 
-Verify real changes by running both dev servers and playing through the loop (needs 3 human tabs; each browser tab is tracked via `botcha_player_id` in localStorage, so separate/incognito tabs simulate separate players). `.claude/launch.json` defines both servers as `web` and `server` for the preview tooling.
+`node server/scripts/smoke-test.mjs` drives a whole game headlessly — 3 mock humans through queue, 3 chat rounds, guess phase, result. Reach for it before hand-driving browser tabs; it needs only the backend running.
+
+For UI changes, verify by running both dev servers and playing the loop (needs 3 human tabs; each browser tab is tracked via `botcha_player_id` in localStorage, so separate/incognito tabs simulate separate players). Pair a single browser tab with the smoke test's players to reach `/table` without opening three windows. `.claude/launch.json` defines both servers as `web` and `server` for the preview tooling.
+
+`/api/bot-test/reply` and the `/#/bot-test` page only exist when `BOT_TEST=1` — the endpoint is an unauthenticated, unmetered path to a paid model, so it must never be enabled on a reachable host.
 
 ## Architecture
 
@@ -40,9 +44,9 @@ Single VPS, single Node process philosophy — no microservices. Two packages, b
 3. `game/room.ts` — the whole game loop lives in `Room.run()`: 3-second roster pause → `tableRounds` × turn-order loop (`runTurn`, one human message or one bot reply per Seat, 200-char cap, timeout skips the Turn) → 2.5s grace pause → `runGuessPhase` (20s window, bot "votes" via a randomized fake delay) → `runReveal` (scores everyone, persists to SQLite, resets each player's `conn.gameId`).
 4. Room state is **entirely in-memory** (`Room` instances live in `activeRooms` map, ~2-4 min lifetime). Only `recordGameStart`/`recordSeat`/`recordMessage`/`finalizeSeat`/`recordGameEnd` touch SQLite, so a crash only loses in-flight games, never history/economy.
 5. `game/connections.ts` holds the single `playerId -> {ws, gameId, pendingTurnResolve, pendingGuessResolve}` map that both the WS route and `Room` read/write — this is how a `turn.message` WS frame becomes the awaited value in `Room.runTurn`'s promise (`waitForTurnMessage`/`waitForGuess` register a resolver on the connection, the WS handler calls it).
-6. `bot/client.ts` calls OpenRouter directly (no SDK). `sanitize()` strips AI-admission patterns as a second line of defense after the persona system prompt (`bot/personas.ts`) — prompt-injection resistance is a stated hard requirement (SPEC §5), not incidental.
-7. `server/src/config.ts` is the single source of truth for every game/economy number (turn length, round count, scoring, prices) and must stay in sync with `docs/SPEC.md` §8 — change numbers here, not scattered through room.ts.
-8. `/bot-test` route (`routes/bot-test.ts` + `web/src/screens/BotTest.tsx`) is a debug-only page to iterate on bot replies without spinning up a full 3-human room.
+6. `bot/client.ts` calls OpenRouter directly (no SDK). `sanitize()` strips AI-admission patterns as a second line of defense after the persona system prompt (`bot/personas.ts`) — prompt-injection resistance is a stated hard requirement ([docs/SPEC.md §7](docs/SPEC.md)), not incidental.
+7. `server/src/config.ts` is the single source of truth for every game/economy number (turn length, round count, scoring, prices) and must stay in sync with [docs/SPEC.md §8.3](docs/SPEC.md) — change numbers here, not scattered through room.ts.
+8. `/bot-test` route (`routes/bot-test.ts` + `web/src/screens/BotTest.tsx`) is a debug-only page to iterate on bot replies without spinning up a full 3-human room. Registered only when `BOT_TEST=1`.
 
 ### Client-side state flow
 
@@ -60,4 +64,6 @@ SQLite tables (`server/src/db/index.ts`, created via `IF NOT EXISTS` on boot, no
 
 ## Deployment
 
-Live at `botcha.far2ad.space` on a single VPS behind the provider's HAProxy panel (not a normal reverse proxy — see README for why). Full deploy/update/verify runbook is in [README.md](README.md) — read it before touching prod; the short version is push to `main`, fast-forward pull on the box, reinstall+restart only the half that changed (server via systemd unit `botcha`, web via rebuild + nginx static).
+Live at `botcha.far2ad.space` on a single VPS behind the provider's HAProxy panel (not a normal reverse proxy). This repo is being prepared to go public, so the runbook with the host, SSH access, and box layout lives outside it, in the private parent repo: `../docs/botcha-deploy.md`. Read it before touching prod.
+
+Short version: push to `main`, fast-forward pull on the box, then reinstall+restart only the half that changed — server via systemd unit `botcha`, web via rebuild + nginx static. `BOT_TEST` must stay unset there.
