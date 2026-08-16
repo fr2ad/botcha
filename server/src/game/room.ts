@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { CONFIG, pickSeatIdentities } from '../config.js';
+import { CONFIG, botDelayMs, pickSeatIdentities } from '../config.js';
 import { connections, send } from './connections.js';
 import type { Seat, RoomPhase } from './types.js';
 import { pickPersona, type Persona } from '../bot/personas.js';
@@ -176,10 +176,12 @@ export class Room {
 
     let text: string | null = null;
     if (seat.kind === 'bot') {
+      const startedAt = Date.now();
       text = await raceWithTimeout(
         getBotReply(this.persona, this.history, round, seat.codeName),
         CONFIG.turnWindowMs
       );
+      await sleep(botDelayMs(text ?? '', Date.now() - startedAt, deadline));
     } else if (seat.connected && seat.playerId) {
       text = await waitForTurnMessage(seat.playerId, CONFIG.turnWindowMs);
     } else {

@@ -12,6 +12,12 @@ export const CONFIG = {
   wrongOrNoGuess: { score: -10, coins: 0 },
   coinEntryPrice: 25,
   botReplyTimeoutMs: 10_000,
+  // The bot answered the instant the model returned — a ~1s Turn every time,
+  // which is the loudest tell at the table. Fake reading/thinking time, then
+  // per-character typing time (~40ms/char ≈ 60wpm on a phone).
+  botThinkMinMs: 1_500,
+  botThinkMaxMs: 4_500,
+  botTypingMsPerChar: 40,
   silentBadgeAfterSkips: 2,
   minHumansToContinue: 2
 } as const;
@@ -33,6 +39,16 @@ const SEAT_FAMILIES: Array<{ color: string; hue: number; animals: string[] }> = 
   { color: 'Violet', hue: 300, animals: ['Raven', 'Crow', 'Panther', 'Bat', 'Loris'] },
   { color: 'Rose', hue: 350, animals: ['Flamingo', 'Quail', 'Sparrow', 'Pika', 'Tapir'] }
 ];
+
+// How long the bot still has to "wait" before its reply lands. Generation time
+// already spent counts toward it, so a slow model doesn't stack delay on delay.
+// Always leaves a 500ms margin before the Turn deadline, or a long reply near
+// the char cap would blow the window and the Turn would read as skipped.
+export function botDelayMs(text: string, elapsedMs: number, deadline: number, now = Date.now()) {
+  const think = CONFIG.botThinkMinMs + Math.random() * (CONFIG.botThinkMaxMs - CONFIG.botThinkMinMs);
+  const human = think + text.length * CONFIG.botTypingMsPerChar;
+  return Math.max(0, Math.min(human - elapsedMs, deadline - now - 500));
+}
 
 export type SeatIdentity = { name: string; color: string };
 

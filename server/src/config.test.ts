@@ -1,6 +1,6 @@
 // Run: npx tsx src/config.test.ts
 import assert from 'node:assert/strict';
-import { AVATAR_POOL, SEAT_CODE_NAMES, pickSeatIdentities } from './config.js';
+import { AVATAR_POOL, CONFIG, SEAT_CODE_NAMES, botDelayMs, pickSeatIdentities } from './config.js';
 
 assert.equal(SEAT_CODE_NAMES.length, 50, '50 seat names');
 assert.equal(new Set(SEAT_CODE_NAMES.map((s) => s.name)).size, 50, 'names are unique');
@@ -26,4 +26,27 @@ for (let i = 0; i < 500; i++) {
   }
 }
 
-console.log('config: ok — 50 names, 15 avatars, 500 draws all distinguishable');
+// The bot's fake typing delay may never push its reply past the Turn deadline —
+// that turns a written reply into a skipped Turn, which is worse than the tell
+// it's covering up.
+{
+  const now = 1_000_000;
+  const deadline = now + CONFIG.turnWindowMs;
+  const longest = 'x'.repeat(CONFIG.maxMessageLength);
+  for (let i = 0; i < 500; i++) {
+    for (const [text, elapsed] of [
+      [longest, 0],
+      [longest, 9_000],
+      ['ok', 0],
+      ['ok', 19_900] // model came back with almost no window left
+    ] as const) {
+      const d = botDelayMs(text, elapsed, deadline, now);
+      assert.ok(d >= 0, `never negative: ${d}`);
+      assert.ok(now + d <= deadline - 500, `lands before the deadline: ${d}`);
+    }
+  }
+  // A short reply from a fast model still waits — that's the whole point.
+  assert.ok(botDelayMs('ok', 200, deadline, now) >= CONFIG.botThinkMinMs - 200);
+}
+
+console.log('config: ok — 50 names, 15 avatars, 500 draws all distinguishable, bot delay inside the Turn');
