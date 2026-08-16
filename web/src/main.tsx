@@ -8,3 +8,8 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>
 );
+
+// See public/sw.js — registered for installability, not for offline support.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

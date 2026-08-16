@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
+import { InstallPrompt } from '../components/InstallPrompt';
 
 const COIN_ENTRY_PRICE = 25;
 const DAILY_HEARTS = 5;
@@ -172,6 +173,9 @@ export function Home() {
       {sheet === 'profile' && <Profile onClose={() => setSheet(null)} />}
 
       {sheet === 'how' && <HowToPlay onClose={() => setSheet(null)} />}
+
+      {/* Home is the only screen it may interrupt — never mid-game. */}
+      {!sheet && <InstallPrompt gamesPlayed={player.history.games} />}
     </div>
   );
 }
