@@ -217,7 +217,9 @@ a {
   border: none;
   outline: none;
   color: var(--text-1);
-  font-size: 14px;
+  /* Never drop below 16px on an input: iOS Safari zooms the page in on focus
+     under that, and the zoom never fully unwinds — the layout stays too wide. */
+  font-size: 16px;
   font-weight: 600;
   min-width: 0;
 }

@@ -45,14 +45,18 @@ export function Onboarding() {
         This is who your friends see — the table never will.
       </div>
 
-      <div className="field" style={{ margin: '20px 0' }}>
+      {/* A <form> around the single input is what makes Enter work on a virtual
+          keyboard, where a keydown handler never sees 'Enter'. No submit button
+          inside: one text field is enough for implicit submission, and the real
+          button has to stay at the bottom of the screen's flex column. */}
+      <form className="field" style={{ margin: '20px 0' }} onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <input
           value={nickname}
           onChange={(e) => setNickname(e.target.value.slice(0, MAX_NICK))}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="BlueberryQueen"
           maxLength={MAX_NICK}
           aria-label="Nickname"
+          enterKeyHint="go"
         />
         {nickname.length === 0 && (
           <span style={{ width: 2, height: 16, background: 'var(--accent)', animation: 'blink 1.1s step-end infinite' }} />
@@ -60,7 +64,7 @@ export function Onboarding() {
         <span style={{ fontSize: 10, color: 'var(--text-5)' }}>
           {nickname.length}/{MAX_NICK}
         </span>
-      </div>
+      </form>
 
       <div
         style={{

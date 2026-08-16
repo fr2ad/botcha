@@ -122,9 +122,12 @@ export function Table() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 6,
-                // Fixed width: animating it reflowed the strip and shunted the
-                // other seats sideways every turn. The ring swap marks the speaker.
-                width: 92,
+                // Equal shares, not a fixed width: 4 x 92px overflowed a 375px
+                // phone and got clipped by .screen's overflow:hidden. flex:1
+                // still never reflows on the ring swap, which was the reason
+                // the width was pinned in the first place.
+                flex: 1,
+                minWidth: 0,
                 cursor: isMyTurn ? 'pointer' : 'default'
               }}
             >
@@ -221,7 +224,14 @@ export function Table() {
         <div ref={chatEndRef} />
       </div>
 
-      <div
+      {/* A real <form> is what makes Enter send: it gives mobile keyboards a
+          Send key (enterKeyHint) and submits natively, where a keydown handler
+          alone is swallowed on most virtual keyboards. */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
         style={{
           marginTop: 14,
           display: 'flex',
@@ -239,10 +249,11 @@ export function Table() {
           ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder={isMyTurn ? 'Say something before time runs out…' : 'Wait for your turn…'}
           disabled={!isMyTurn}
           maxLength={MAX_LEN}
+          enterKeyHint="send"
+          autoComplete="off"
           style={{
             flex: 1,
             minWidth: 0,
@@ -250,12 +261,14 @@ export function Table() {
             border: 'none',
             outline: 'none',
             color: 'var(--text-1)',
-            fontSize: 13
+            // 16px exactly: iOS Safari zooms the whole page in on focus below
+            // that, which is what broke the layout width on phones.
+            fontSize: 16
           }}
         />
         <span style={{ fontSize: 10, color: 'var(--text-5)' }}>{MAX_LEN - draft.length}</span>
         <button
-          onClick={submit}
+          type="submit"
           disabled={!isMyTurn || !draft.trim()}
           aria-label="Send"
           style={{
@@ -273,7 +286,7 @@ export function Table() {
         >
           <i className="hgi-stroke hgi-sent" style={{ fontSize: 14 }} />
         </button>
-      </div>
+      </form>
 
       <div
         style={{

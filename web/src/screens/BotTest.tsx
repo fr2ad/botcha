@@ -41,18 +41,19 @@ export function BotTest() {
         {loading && <div style={{ opacity: 0.6 }}>bot is typing…</div>}
         {error && <div style={{ color: 'crimson' }}>error: {error}</div>}
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <form style={{ display: 'flex', gap: 8 }} onSubmit={(e) => { e.preventDefault(); send(); }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
           placeholder="say something…"
-          style={{ flex: 1, padding: 8 }}
+          enterKeyHint="send"
+          // 16px keeps iOS Safari from zooming the page in on focus.
+          style={{ flex: 1, padding: 8, fontSize: 16 }}
         />
-        <button onClick={send} disabled={loading}>
+        <button type="submit" disabled={loading}>
           Send
         </button>
-      </div>
+      </form>
     </div>
   );
 }
