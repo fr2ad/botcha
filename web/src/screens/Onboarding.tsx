@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 
@@ -7,7 +7,11 @@ const MAX_NICK = 24;
 
 export function Onboarding() {
   const navigate = useNavigate();
-  const { login } = useGame();
+  const location = useLocation();
+  const { login, loginWithGoogleSignup } = useGame();
+  // Set only when Landing routed here after a verified-but-new Google
+  // sign-in (see api.googleLogin) — everyone else goes through mock-login.
+  const googleId = (location.state as { googleId?: string } | null)?.googleId;
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState(AVATAR_POOL[0]);
   const [busy, setBusy] = useState(false);
@@ -21,7 +25,8 @@ export function Onboarding() {
     setBusy(true);
     setError(null);
     try {
-      await login(nickname.trim(), avatar);
+      if (googleId) await loginWithGoogleSignup(googleId, nickname.trim(), avatar);
+      else await login(nickname.trim(), avatar);
       navigate('/home');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');

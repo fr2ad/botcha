@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS players (
   score INTEGER NOT NULL DEFAULT 0,
   hearts_remaining INTEGER NOT NULL DEFAULT ${CONFIG.dailyHearts},
   hearts_reset_at TEXT NOT NULL,
+  fcm_token TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -73,6 +74,14 @@ CREATE TABLE IF NOT EXISTS play_history (
 );
 `);
 
+// Belt-and-suspenders for anyone with a DB file from before fcm_token
+// existed — CREATE TABLE IF NOT EXISTS above only applies on a fresh DB.
+try {
+  db.exec(`ALTER TABLE players ADD COLUMN fcm_token TEXT`);
+} catch {
+  // already has the column
+}
+
 export type PlayerRow = {
   id: string;
   google_id: string;
@@ -82,6 +91,7 @@ export type PlayerRow = {
   score: number;
   hearts_remaining: number;
   hearts_reset_at: string;
+  fcm_token: string | null;
   created_at: string;
 };
 
@@ -101,8 +111,36 @@ export function ensureDailyHeartsReset(player: PlayerRow): PlayerRow {
   return player;
 }
 
+// Proactive counterpart to the lazy per-read reset above — run periodically
+// (scheduler.ts) so a refill can trigger a push even if the player's client
+// never happens to poll right at UTC midnight. Only touches players who are
+// both stale *and* below max, so it never re-notifies someone already full.
+export function refillDueHearts(): Array<{ id: string; fcmToken: string }> {
+  const stamp = todayResetStamp();
+  const due = db
+    .prepare(
+      `SELECT id, fcm_token FROM players WHERE hearts_reset_at != ? AND hearts_remaining < ? AND fcm_token IS NOT NULL`
+    )
+    .all(stamp, CONFIG.dailyHearts) as Array<{ id: string; fcm_token: string }>;
+  db.prepare(`UPDATE players SET hearts_remaining = ?, hearts_reset_at = ? WHERE hearts_reset_at != ?`).run(
+    CONFIG.dailyHearts,
+    stamp,
+    stamp
+  );
+  return due.map((p) => ({ id: p.id, fcmToken: p.fcm_token }));
+}
+
+export function setFcmToken(playerId: string, token: string) {
+  db.prepare(`UPDATE players SET fcm_token = ? WHERE id = ?`).run(token, playerId);
+}
+
 export function getPlayer(id: string): PlayerRow | undefined {
   const p = db.prepare(`SELECT * FROM players WHERE id = ?`).get(id) as PlayerRow | undefined;
+  return p ? ensureDailyHeartsReset(p) : undefined;
+}
+
+export function getPlayerByGoogleId(googleId: string): PlayerRow | undefined {
+  const p = db.prepare(`SELECT * FROM players WHERE google_id = ?`).get(googleId) as PlayerRow | undefined;
   return p ? ensureDailyHeartsReset(p) : undefined;
 }
 

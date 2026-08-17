@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { fetchPlayer, mockLogin, updateAvatar, wsUrl } from './api';
+import { fetchPlayer, googleSignup, mockLogin, updateAvatar, wsUrl } from './api';
+import { trackEvent } from './firebase';
 import type { ChatMessage, GamePhase, Player, RevealData, ResultData, RosterEntry } from './types';
 
 type State = {
@@ -136,6 +137,8 @@ function reducer(state: State, action: Action): State {
 type Ctx = {
   state: State;
   login: (nickname: string, avatar: string) => Promise<void>;
+  loginWithGoogleSignup: (googleId: string, nickname: string, avatar: string) => Promise<void>;
+  loginWithExistingPlayer: (player: Player) => void;
   resumeSession: () => Promise<boolean>;
   joinQueue: () => void;
   leaveQueue: () => void;
@@ -193,6 +196,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [connect]
   );
 
+  // Second half of real Google Sign-In, for a `newGoogleUser` (see
+  // api.googleLogin) once they've picked a Nickname and Avatar.
+  const loginWithGoogleSignup = useCallback(
+    async (googleId: string, nickname: string, avatar: string) => {
+      const { player } = await googleSignup(googleId, nickname, avatar);
+      localStorage.setItem(STORAGE_KEY, player.id);
+      dispatch({ type: 'SET_PLAYER', player });
+      connect(player.id);
+    },
+    [connect]
+  );
+
+  // A returning Google user — api.googleLogin already resolved them to a
+  // Player, so this just enters the session, no signup step.
+  const loginWithExistingPlayer = useCallback(
+    (player: Player) => {
+      localStorage.setItem(STORAGE_KEY, player.id);
+      dispatch({ type: 'SET_PLAYER', player });
+      connect(player.id);
+    },
+    [connect]
+  );
+
   const resumeSession = useCallback(async () => {
     const id = localStorage.getItem(STORAGE_KEY);
     if (!id) return false;
@@ -218,6 +244,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const joinQueue = useCallback(() => {
     dispatch({ type: 'ENTER_QUEUE' });
     send({ type: 'queue.join' });
+    trackEvent('queue_join');
   }, [send]);
 
   const leaveQueue = useCallback(() => {
@@ -236,6 +263,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (seatIndex: number) => {
       dispatch({ type: 'SET_MY_GUESS', seatIndex });
       send({ type: 'guess.submit', seatIndex });
+      trackEvent('guess_submit');
     },
     [send]
   );
@@ -285,10 +313,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (state.gameId) trackEvent('game_start');
+  }, [state.gameId]);
+
+  useEffect(() => {
+    if (state.result) trackEvent('game_result', { outcome: state.result.outcome });
+  }, [state.result]);
+
   const value = useMemo<Ctx>(
     () => ({
       state,
       login,
+      loginWithGoogleSignup,
+      loginWithExistingPlayer,
       resumeSession,
       joinQueue,
       leaveQueue,
@@ -301,6 +339,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [
       state,
       login,
+      loginWithGoogleSignup,
+      loginWithExistingPlayer,
       resumeSession,
       joinQueue,
       leaveQueue,

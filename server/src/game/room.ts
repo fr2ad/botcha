@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { CONFIG, botDelayMs, pickSeatIdentities } from '../config.js';
+import { trackServerEvent } from '../analytics.js';
 import { connections, send } from './connections.js';
 import type { Seat, RoomPhase } from './types.js';
 import { pickPersonas } from '../bot/personas.js';
@@ -86,6 +87,7 @@ export class Room {
     }
 
     this.turnOrder = shuffle(this.seats.map((s) => s.index));
+    if (botCount >= 2) trackServerEvent('multi_bot_room', { botCount }, this.id);
     recordGameStart(this.id, process.env.OPENROUTER_MODEL ?? 'mock', personas.map((p) => p.id).join(','));
     for (const seat of this.seats) recordSeat(this.id, seat.index, seat.codeName, seat.playerId);
 

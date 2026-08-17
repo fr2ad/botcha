@@ -60,7 +60,9 @@ When adding a new server→client event: add the WS message shape server-side, a
 
 ## Data model
 
-SQLite tables (`server/src/db/index.ts`, created via `IF NOT EXISTS` on boot, no migration framework): `players`, `games`, `game_seats`, `coin_ledger` (append-only, source of truth for Coins), `messages`, `play_history`. Google OAuth is mocked (`routes/auth.ts`: `/api/auth/mock-login` just creates a player from a client-picked nickname/avatar) — every downstream route only ever deals with an opaque `playerId`, so swapping in real OAuth later shouldn't touch game logic.
+SQLite tables (`server/src/db/index.ts`, created via `IF NOT EXISTS` on boot, no migration framework): `players` (now also `fcm_token`, for push), `games`, `game_seats`, `coin_ledger` (append-only, source of truth for Coins), `messages`, `play_history`. Login has two paths in `routes/auth.ts`: `/api/auth/mock-login` (creates a player from a client-picked nickname/avatar, no verification) and real Google Sign-In (`/api/auth/google-login` + `/api/auth/google-signup`, ID-token verification via `google-auth-library`, gated on `GOOGLE_CLIENT_ID` — unset, mock-login is the only path). Either way every downstream route only ever deals with an opaque `playerId`.
+
+Firebase is opt-in throughout, same pattern as `OPENROUTER_API_KEY`: unset config vars mean that piece is a no-op, not an error. Client analytics/push live in `web/src/firebase.ts` (`VITE_FIREBASE_*`); the one server-only analytics event (exact Bot count — must never reach the client, see `server/src/analytics.ts`) goes over GA4 Measurement Protocol from `game/room.ts` instead. Hearts-refill push notifications are `server/src/scheduler.ts`, a 15-minute `setInterval` sweep using `firebase-admin` (`FIREBASE_SERVICE_ACCOUNT_JSON`) — background push also needs `web/public/sw.js`'s `FIREBASE_CONFIG` filled in by hand, since that file is a static asset Vite doesn't build.
 
 ## Deployment
 

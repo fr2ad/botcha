@@ -1,6 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { googleLogin } from '../api';
 import { Ambient } from '../components/Ambient';
 import { Wordmark } from '../components/Wordmark';
+import { useGame } from '../GameContext';
 
 const STEPS = [
   { icon: 'hgi-user-group', label: 'join a table' },
@@ -8,8 +11,62 @@ const STEPS = [
   { icon: 'hgi-search-01', label: 'guess a bot' }
 ];
 
+// Unset -> the button below just goes to the mocked nickname/avatar flow,
+// exactly like before. Set -> it's replaced with Google's own rendered
+// button, which is what actually gets us an ID token (see api.googleLogin).
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id: string; callback: (resp: { credential: string }) => void }) => void;
+          renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
+
 export function Landing() {
   const navigate = useNavigate();
+  const { loginWithExistingPlayer } = useGame();
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
+
+    async function onCredential(resp: { credential: string }) {
+      const result = await googleLogin(resp.credential);
+      if ('player' in result) {
+        loginWithExistingPlayer(result.player);
+        navigate('/home');
+      } else {
+        navigate('/onboarding', { state: { googleId: result.googleId } });
+      }
+    }
+
+    // Loaded on demand rather than unconditionally in index.html — no point
+    // pulling in Google's script for installs that never configure this.
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => {
+      if (!window.google || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID!, callback: onCredential });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'filled_blue',
+        size: 'large',
+        shape: 'pill',
+        width: 260
+      });
+    };
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [navigate, loginWithExistingPlayer]);
 
   return (
     <div className="screen" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -23,29 +80,39 @@ export function Landing() {
         <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>Find them.</span>
       </div>
 
-      <button className="btn-primary pulse" style={{ width: 260, marginTop: 34 }} onClick={() => navigate('/onboarding')}>
-        <span
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: '50%',
-            background: '#fff',
-            color: 'var(--accent-deep)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'var(--font-head)',
-            fontWeight: 700,
-            fontSize: 13
-          }}
-        >
-          G
-        </span>
-        Continue with Google
-      </button>
-      <div style={{ marginTop: 12, fontSize: 10.5, color: 'var(--text-5)' }}>
-        mocked for now — one tap and you're in
-      </div>
+      {GOOGLE_CLIENT_ID ? (
+        <div ref={googleBtnRef} style={{ marginTop: 34, minHeight: 44 }} />
+      ) : (
+        <>
+          <button
+            className="btn-primary pulse"
+            style={{ width: 260, marginTop: 34 }}
+            onClick={() => navigate('/onboarding')}
+          >
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: '#fff',
+                color: 'var(--accent-deep)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'var(--font-head)',
+                fontWeight: 700,
+                fontSize: 13
+              }}
+            >
+              G
+            </span>
+            Continue with Google
+          </button>
+          <div style={{ marginTop: 12, fontSize: 10.5, color: 'var(--text-5)' }}>
+            mocked for now — one tap and you're in
+          </div>
+        </>
+      )}
 
       <div style={{ display: 'flex', gap: 26, marginTop: 52 }}>
         {STEPS.map((s, i) => (

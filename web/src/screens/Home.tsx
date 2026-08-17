@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 import { InstallPrompt } from '../components/InstallPrompt';
+import { enablePushNotifications } from '../firebase';
 
 const COIN_ENTRY_PRICE = 25;
 const DAILY_HEARTS = 5;
@@ -22,6 +23,12 @@ export function Home() {
   const { state, joinQueue } = useGame();
   const [sheet, setSheet] = useState<'hearts' | 'how' | 'profile' | null>(null);
   const player = state.player;
+
+  useEffect(() => {
+    if (player) enablePushNotifications(player.id);
+    // Browsers only ever show the permission dialog once per origin — safe
+    // to call this on every Home mount, not just first login.
+  }, [player?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!player) return null;
 

@@ -21,6 +21,27 @@ export function mockLogin(nickname: string, avatar: string) {
   });
 }
 
+export function googleLogin(idToken: string) {
+  return req<{ player: Player } | { newGoogleUser: true; googleId: string }>('/api/auth/google-login', {
+    method: 'POST',
+    body: JSON.stringify({ idToken })
+  });
+}
+
+export function googleSignup(googleId: string, nickname: string, avatar: string) {
+  return req<{ player: Player }>('/api/auth/google-signup', {
+    method: 'POST',
+    body: JSON.stringify({ googleId, nickname, avatar })
+  });
+}
+
+export function registerFcmToken(playerId: string, token: string) {
+  return req<{ ok: true }>(`/api/players/${playerId}/fcm-token`, {
+    method: 'POST',
+    body: JSON.stringify({ token })
+  });
+}
+
 export function fetchPlayer(id: string) {
   return req<{ player: Player }>(`/api/players/${id}`);
 }
