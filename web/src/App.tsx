@@ -14,6 +14,8 @@ import { Reveal } from './screens/Reveal';
 import { Result } from './screens/Result';
 import { Leaderboard } from './screens/Leaderboard';
 import { BotTest } from './screens/BotTest';
+import { Privacy } from './screens/Privacy';
+import { Terms } from './screens/Terms';
 
 function Splash() {
   return (
@@ -106,6 +108,10 @@ function Router() {
       <Route path="/reveal" element={loggedIn ? <Reveal /> : <Navigate to="/" replace />} />
       <Route path="/result" element={loggedIn ? <Result /> : <Navigate to="/" replace />} />
       <Route path="/leaderboard" element={loggedIn ? <Leaderboard /> : <Navigate to="/" replace />} />
+      {/* Public on purpose — Google's OAuth consent screen links to these, and
+          people read them before deciding to sign up. */}
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/bot-test" element={<BotTest />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

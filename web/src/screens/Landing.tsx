@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { googleLogin } from '../api';
 import { Ambient } from '../components/Ambient';
 import { Wordmark } from '../components/Wordmark';
@@ -150,6 +150,16 @@ export function Landing() {
             {s.label}
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 34, fontSize: 10.5, color: 'var(--text-5)', display: 'flex', gap: 8 }}>
+        <Link to="/privacy" style={{ color: 'var(--text-4)' }}>
+          Privacy
+        </Link>
+        <span>·</span>
+        <Link to="/terms" style={{ color: 'var(--text-4)' }}>
+          Terms
+        </Link>
       </div>
     </div>
   );

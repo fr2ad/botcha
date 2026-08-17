@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
@@ -318,6 +318,24 @@ function Profile({ onClose }: { onClose: () => void }) {
             <i className="hgi-stroke hgi-logout-03" style={{ fontSize: 15 }} />
             Log out
           </button>
+          <div
+            style={{
+              marginTop: 14,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 8,
+              fontSize: 10.5,
+              color: 'var(--text-5)'
+            }}
+          >
+            <Link to="/privacy" style={{ color: 'var(--text-4)' }}>
+              Privacy
+            </Link>
+            <span>·</span>
+            <Link to="/terms" style={{ color: 'var(--text-4)' }}>
+              Terms
+            </Link>
+          </div>
           <button className="btn-text" style={{ width: '100%' }} onClick={onClose}>
             Close
           </button>
