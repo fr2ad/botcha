@@ -112,12 +112,6 @@ export const PORT = Number(process.env.PORT ?? 8787);
 // /api/auth/mock-login stays the only login path, exactly like today.
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 
-// GA4 Measurement Protocol (analytics.ts) — server-side events, no SDK needed.
-// Both from the same Firebase project's linked GA4 property: Project Settings
-// > Data Streams > your web stream > Measurement Protocol API secrets.
-export const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID ?? '';
-export const GA4_API_SECRET = process.env.GA4_API_SECRET ?? '';
-
 // firebase-admin, for the hearts-refill push (scheduler.ts). The full
 // service account JSON, as a single-line env var. Unset -> pushes are
 // skipped; hearts still refill, players just aren't notified.

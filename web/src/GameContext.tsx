@@ -321,6 +321,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (state.result) trackEvent('game_result', { outcome: state.result.outcome });
   }, [state.result]);
 
+  // Bot count per room, fired at Reveal rather than at game start — this is
+  // the first moment the client is *allowed* to know it, since knowing it any
+  // earlier would hand the player the answer (SPEC §4). Every human at the
+  // table reports the same room, so count DISTINCT game_id in GA4, not raw
+  // event volume, to get "rooms with 2+ bots".
+  useEffect(() => {
+    if (!state.reveal || !state.gameId) return;
+    const botCount = state.reveal.botSeatIndexes.length;
+    if (botCount >= 2) trackEvent('multi_bot_room', { botCount, game_id: state.gameId });
+  }, [state.reveal, state.gameId]);
+
   const value = useMemo<Ctx>(
     () => ({
       state,
