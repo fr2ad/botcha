@@ -298,7 +298,7 @@ export function Table() {
           fontWeight: 800
         }}
       >
-        ONE OF THESE FOUR IS NOT HUMAN
+        1–3 OF YOUR OPPONENTS MAY BE BOTS
       </div>
     </div>
   );

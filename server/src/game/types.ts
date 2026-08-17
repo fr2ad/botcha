@@ -1,3 +1,5 @@
+import type { Persona } from '../bot/personas.js';
+
 export type SeatKind = 'human' | 'bot';
 
 export type Seat = {
@@ -8,6 +10,7 @@ export type Seat = {
   playerId: string | null; // null for bot
   nickname: string; // real nickname (human) or fake nickname (bot)
   avatar: string;
+  persona: Persona | null; // set for bot seats only — each bot in a room gets its own
   skippedTurns: number;
   silentBadge: boolean;
   guessSeatIndex: number | null;

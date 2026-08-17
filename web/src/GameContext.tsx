@@ -104,7 +104,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         phase: 'reveal',
-        reveal: { botSeatIndex: action.botSeatIndex, guesses: action.guesses, identities: action.identities }
+        reveal: { botSeatIndexes: action.botSeatIndexes, guesses: action.guesses, identities: action.identities }
       };
     case 'game.result':
       return {
@@ -115,7 +115,7 @@ function reducer(state: State, action: Action): State {
           scoreDelta: action.scoreDelta,
           coinDelta: action.coinDelta,
           leaderboardRank: action.leaderboardRank,
-          botSeatIndex: action.botSeatIndex,
+          botSeatIndexes: action.botSeatIndexes,
           yourSeatIndex: action.yourSeatIndex
         },
         player: state.player

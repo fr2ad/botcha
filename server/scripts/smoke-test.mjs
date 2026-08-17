@@ -10,7 +10,7 @@ async function mockLogin(nickname) {
   const res = await fetch(`${BASE}/api/auth/mock-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nickname, avatar: '🦝' })
+    body: JSON.stringify({ nickname, avatar: 'dot' })
   });
   if (!res.ok) throw new Error(`login failed: ${res.status} ${await res.text()}`);
   const { player } = await res.json();

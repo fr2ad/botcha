@@ -24,7 +24,7 @@ export type ChatMessage = {
 };
 
 export type RevealData = {
-  botSeatIndex: number;
+  botSeatIndexes: number[];
   guesses: Array<{ seatIndex: number; guessSeatIndex: number | null }>;
   identities: Array<{ seatIndex: number; nickname: string; avatar: string; isBot: boolean }>;
 };
@@ -34,7 +34,7 @@ export type ResultData = {
   scoreDelta: number;
   coinDelta: number;
   leaderboardRank: number;
-  botSeatIndex: number;
+  botSeatIndexes: number[];
   yourSeatIndex: number;
 };
 

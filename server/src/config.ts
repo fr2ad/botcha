@@ -1,8 +1,14 @@
 // All game/economy numbers in one place — matches docs/SPEC.md section 8.
 export const CONFIG = {
   seatsPerRoom: 4,
-  botsPerRoom: 1,
+  // Bot count is now variable, not fixed — see queue.ts. A room always seats
+  // between 1 and seatsPerRoom-1 Bots, never 0 (the game needs a bot to hunt)
+  // and never a table of only Bots (a lone Player still needs a table).
   tableRounds: 3,
+  // How long a queued Player waits for enough real opponents before the rest
+  // of the table fills with Bots. Keeps the queue from ever truly blocking —
+  // worst case, a Player alone gets a full 3-Bot table after this wait.
+  queueFillTimeoutMs: 12_000,
   turnWindowMs: 20_000,
   maxMessageLength: 200,
   guessWindowMs: 20_000,

@@ -21,9 +21,9 @@ export function Guess() {
   return (
     <div className="screen" style={{ alignItems: 'center' }}>
       <div style={{ padding: '28px 0 6px', fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 22 }}>
-        Who's the bot?
+        Who's a bot?
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>3 rounds of chat. One shot.</div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>1–3 of them are. Pick one, one shot.</div>
 
       <div style={{ margin: '24px 0 28px' }}>
         {state.guessDeadline && (

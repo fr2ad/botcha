@@ -12,13 +12,14 @@ full list.
 
 ## 1. What the game is
 
-Four participants chat anonymously around a virtual table — three humans and one
-AI **Bot**. After three rounds of turn-based chat, each **Player** privately
-guesses which **Seat** is the Bot. Correct guesses earn **Score** and **Coins**;
-the result is shareable as an image card.
+Four participants chat anonymously around a virtual table — the rest are real
+Players, 1 to 3 are AI **Bots**, and you're never told how many. After three
+rounds of turn-based chat, each **Player** privately guesses which **Seat** is
+a Bot. Correct guesses earn **Score** and **Coins**; the result is shareable as
+an image card.
 
-A reverse Turing test: you are not proving you are human, you are hunting the one
-who is not.
+A reverse Turing test: you are not proving you are human, you are hunting who
+isn't — and you don't even know how many you're hunting.
 
 Product goals: an English-language, USD-economy game built end-to-end with AI
 assistance, and a vehicle for learning product growth and monetization. Runs
@@ -35,7 +36,7 @@ a wrong mental model from some other genre of app.
 | **Room** | A live game session holding 4 Seats (4–10 in later phases). | lobby, channel |
 | **Seat** | An anonymous in-game identity — a color plus code name, e.g. *Blue Fox*. Guessing targets Seats, never Players. | slot, position |
 | **Player** | A registered human account with a Nickname and Avatar. | user, member |
-| **Bot** | The AI participant, an OpenRouter model wearing a persona. Carries a believable fake Nickname and Avatar on the pre-game roster. | AI, robot, model (reserve "model" for the LLM itself) |
+| **Bot** | An AI participant, an OpenRouter model wearing a persona. 1–3 per Room. Carries a believable fake Nickname and Avatar on the pre-game roster. | AI, robot, model (reserve "model" for the LLM itself) |
 | **Guess** | A Player's private end-of-game selection of exactly one Seat as the Bot. | vote, pick |
 | **Reveal** | The end-of-Room moment when Bot identity and results are shown. | — |
 | **Table Round** | One full cycle in which every Seat takes one Turn. | round (alone — ambiguous with the whole game), cycle |
@@ -63,12 +64,18 @@ choices, which would destroy the game.
 
 ## 4. Room and matchmaking
 
-- 4 Seats: **3 humans + 1 Bot**. Single difficulty — Bot count is known.
+- 4 Seats, **1 to 3 Bots**. **[built]** Bot count is *not* fixed or disclosed —
+  the roster only promises "1–3 of your opponents may be Bots." The queue seats
+  as many real Players as are waiting (up to 3) and fills any remaining Seats
+  with Bots, so a Player is never blocked waiting for a full human table, and a
+  Player queueing alone still gets a full game (a de facto solo mode) after a
+  short wait. See [§9](#9-spec-vs-built) for the original fixed-Bot-count spec.
 - **Global matchmaking queue.** No manual room creation, no private rooms.
 - Waiting is free. **One Heart is charged only when the game actually starts.**
   Out of Hearts, a Player may enter with **25 Coins** instead.
-- Pre-game roster shows all 4 Nicknames and Avatars, the Bot's being a plausible
-  fake. Nobody knows which Seat maps to which Nickname.
+- Pre-game roster shows all 4 Nicknames and Avatars, each Bot's being a
+  plausible fake. Nobody knows which Seat maps to which Nickname, or how many
+  Seats are Bots.
 - Seat identities are assigned from distinct color families so four Seats are
   never near-identical hues — telling Seats apart at a glance is the whole game.
 
@@ -77,7 +84,7 @@ choices, which would destroy the game.
 ### 5.1 Chat phase
 
 - **3 Table Rounds.** Turn order randomized at game start, fixed thereafter, Bot
-  position random.
+  Seat positions random.
 - Each Turn: a window to send **one message, max 200 characters**. Sending ends
   the Turn early; the window elapsing skips it. **[built]** 20 s, not the 15 s
   originally specified.
@@ -87,17 +94,21 @@ choices, which would destroy the game.
 
 ### 5.2 Guess phase
 
-- A separate screen: pick exactly one Seat. **20-second timer**, closing early
-  once everyone has chosen.
+- A separate screen: pick exactly one Seat, correct if it's any of the Bots. A
+  Guess is right or wrong the same way regardless of how many Bots the table
+  actually had — the Player never learns the count from the scoring alone.
+  **20-second timer**, closing early once everyone has chosen.
 - Guesses are **private** until all are in.
-- The Bot does not really guess. After a randomized delay it shows a "voted"
-  indicator so its status looks identical to a human's.
+- No Bot really guesses. Each, independently and on its own randomized delay,
+  shows a "voted" indicator so its status looks identical to a human's — they
+  don't all resolve together, which would itself be a tell about how many
+  there are.
 
 ### 5.3 Reveal and result
 
-- Show every Player's Guess, then reveal the Bot with the Seat → roster identity
-  mapping. **[built]** A 6-second pause separates the two; sent in one tick, the
-  unmasking flashed past unseen.
+- Show every Player's Guess, then reveal every Bot Seat with the Seat → roster
+  identity mapping. **[built]** A 6-second pause separates the two; sent in one
+  tick, the unmasking flashed past unseen.
 - Result screen: personal outcome, Score/Coin deltas, leaderboard position, and a
   Share button.
 
@@ -252,14 +263,18 @@ the authority.
 | Reverse proxy | Caddy, automatic HTTPS | Provider HAProxy terminates TLS, nginx serves static |
 | Rate limiting | Per-IP and per-account | **Not implemented** |
 | Reveal → result | Implied immediate | 6 s pause so the unmasking is readable |
+| Bot count | Fixed at 1, always known | Variable 1–3, disclosed only as a range ("1–3 of your opponents may be bots"); Scoring stays flat regardless of count — no separate multiplier tier for a table with more Bots |
 
 ## 11. Not in scope
 
 Deliberately cut, not forgotten: 7- and 10-Seat rooms (2–3 Bots, multi-guess
-scoring) · Expert difficulty (hidden Bot count, ×2 scoring) · Pin Question ·
-email + verification login · private friend rooms · payment gateway (Coin packs,
-Premium) · premium avatars · model-vs-model deception leaderboard · free-form
-"chaos mode" · practice mode against bots.
+scoring) · a ×2 scoring multiplier for hidden-Bot-count tables (count is hidden
+now, but scoring doesn't change with it — see [§9](#9-spec-vs-built)) · Pin
+Question · email + verification login · private friend rooms · payment gateway
+(Coin packs, Premium) · premium avatars · model-vs-model deception leaderboard ·
+free-form "chaos mode" · an explicit, opt-in practice mode (queueing alone
+opportunistically gets an all-Bot table via the queue's fill timeout, but
+there's no dedicated "practice" entry point or difficulty toggle).
 
 ## 12. Open assumptions
 
@@ -269,3 +284,6 @@ a redesign.
 1. Free avatar count, and deferring premium avatars.
 2. Bot API failure handling.
 3. Daily Heart reset at a fixed UTC time rather than a rolling 24 hours.
+4. The 12 s queue fill timeout (`CONFIG.queueFillTimeoutMs`) before empty
+   Seats get Bot-filled — picked to feel responsive, not measured against real
+   traffic.

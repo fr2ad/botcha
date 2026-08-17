@@ -5,7 +5,7 @@ import { Wordmark } from '../components/Wordmark';
 const STEPS = [
   { icon: 'hgi-user-group', label: 'join a table' },
   { icon: 'hgi-message-01', label: 'chat 3 rounds' },
-  { icon: 'hgi-search-01', label: 'guess the bot' }
+  { icon: 'hgi-search-01', label: 'guess a bot' }
 ];
 
 export function Landing() {
@@ -18,9 +18,9 @@ export function Landing() {
       <Wordmark size={46} />
 
       <div style={{ marginTop: 14, fontSize: 16, color: 'var(--text-2)', lineHeight: 1.5 }}>
-        3 humans. 1 bot.
+        1-3 bots at the table.
         <br />
-        <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>Find it.</span>
+        <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>Find them.</span>
       </div>
 
       <button className="btn-primary pulse" style={{ width: 260, marginTop: 34 }} onClick={() => navigate('/onboarding')}>

@@ -42,7 +42,7 @@ export async function renderShareCard(opts: {
   ctx.fillText('BOTCHA', size / 2, size - 90);
   ctx.font = '400 16px Nunito, sans-serif';
   ctx.fillStyle = '#565a72';
-  ctx.fillText('3 humans. 1 bot. Find it.', size / 2, size - 60);
+  ctx.fillText('1-3 bots at the table. Find them.', size / 2, size - 60);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('canvas export failed'))), 'image/png');

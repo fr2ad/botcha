@@ -6,6 +6,11 @@ import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
 
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
 export function Result() {
   const navigate = useNavigate();
   const { state, goHome, joinQueue } = useGame();
@@ -21,7 +26,10 @@ export function Result() {
     : result.outcome === 'wrong'
       ? 'You picked wrong…'
       : "You didn't guess in time";
-  const botSeat = state.roster.find((s) => s.seatIndex === reveal.botSeatIndex);
+  const botSeats = reveal.botSeatIndexes
+    .map((i) => state.roster.find((s) => s.seatIndex === i))
+    .filter((s): s is NonNullable<typeof s> => !!s);
+  const botNames = joinNames(botSeats.map((s) => s.codeName));
 
   async function share() {
     if (!result) return;
@@ -89,12 +97,12 @@ export function Result() {
       </div>
       {result.outcome === 'wrong' && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
-          {botSeat?.codeName} fooled you. It happens to the best.
+          {botNames} fooled you. It happens to the best.
         </div>
       )}
       {result.outcome === 'no_guess' && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
-          The clock ran out — {botSeat?.codeName} was the bot.
+          The clock ran out — {botNames} {botSeats.length > 1 ? 'were' : 'was'} the bot{botSeats.length > 1 ? 's' : ''}.
         </div>
       )}
 
@@ -154,7 +162,7 @@ export function Result() {
           if (!seat) return null;
           const guess = reveal.guesses.find((g) => g.seatIndex === identity.seatIndex);
           const isMe = identity.seatIndex === state.mySeatIndex;
-          const guessedRight = guess?.guessSeatIndex === reveal.botSeatIndex;
+          const guessedRight = guess?.guessSeatIndex != null && reveal.botSeatIndexes.includes(guess.guessSeatIndex);
           return (
             <div
               key={identity.seatIndex}

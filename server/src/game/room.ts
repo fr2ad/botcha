@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid';
 import { CONFIG, botDelayMs, pickSeatIdentities } from '../config.js';
 import { connections, send } from './connections.js';
 import type { Seat, RoomPhase } from './types.js';
-import { pickPersona, type Persona } from '../bot/personas.js';
+import { pickPersonas } from '../bot/personas.js';
 import { getBotReply, type ChatTurn } from '../bot/client.js';
 import {
   adjustCoins,
@@ -33,26 +33,33 @@ export class Room {
   round = 0;
   seats: Seat[] = [];
   turnOrder: number[] = [];
-  persona: Persona;
   history: ChatTurn[] = [];
   cancelled = false;
 
+  // Never 0 Bots (nothing to hunt) and never a Player-less table — the
+  // queue only ever hands this humanPlayerIds.length between 1 and
+  // seatsPerRoom - 1, so botCount lands in the same range automatically.
   constructor(humanPlayerIds: string[]) {
-    this.persona = pickPersona();
+    const botCount = CONFIG.seatsPerRoom - humanPlayerIds.length;
+    const personas = pickPersonas(botCount);
     const codeNames = pickSeatIdentities(CONFIG.seatsPerRoom);
-    const botSeatIndex = Math.floor(Math.random() * CONFIG.seatsPerRoom);
+    const allSeatIndexes = Array.from({ length: CONFIG.seatsPerRoom }, (_, i) => i);
+    const botSeatIndexes = new Set(shuffle(allSeatIndexes).slice(0, botCount));
     const humanOrder = shuffle(humanPlayerIds);
+    let personaI = 0;
 
     for (let i = 0; i < CONFIG.seatsPerRoom; i++) {
-      if (i === botSeatIndex) {
+      if (botSeatIndexes.has(i)) {
+        const persona = personas[personaI++];
         this.seats.push({
           index: i,
           codeName: codeNames[i].name,
           color: codeNames[i].color,
           kind: 'bot',
           playerId: null,
-          nickname: this.persona.fakeNickname,
-          avatar: this.persona.fakeAvatar,
+          nickname: persona.fakeNickname,
+          avatar: persona.fakeAvatar,
+          persona,
           skippedTurns: 0,
           silentBadge: false,
           guessSeatIndex: null,
@@ -69,6 +76,7 @@ export class Room {
           playerId,
           nickname: player.nickname,
           avatar: player.avatar,
+          persona: null,
           skippedTurns: 0,
           silentBadge: false,
           guessSeatIndex: null,
@@ -78,7 +86,7 @@ export class Room {
     }
 
     this.turnOrder = shuffle(this.seats.map((s) => s.index));
-    recordGameStart(this.id, process.env.OPENROUTER_MODEL ?? 'mock', this.persona.id);
+    recordGameStart(this.id, process.env.OPENROUTER_MODEL ?? 'mock', personas.map((p) => p.id).join(','));
     for (const seat of this.seats) recordSeat(this.id, seat.index, seat.codeName, seat.playerId);
 
     for (const seat of this.seats) {
@@ -178,7 +186,7 @@ export class Room {
     if (seat.kind === 'bot') {
       const startedAt = Date.now();
       text = await raceWithTimeout(
-        getBotReply(this.persona, this.history, round, seat.codeName),
+        getBotReply(seat.persona!, this.history, round, seat.codeName),
         CONFIG.turnWindowMs
       );
       await sleep(botDelayMs(text ?? '', Date.now() - startedAt, deadline));
@@ -212,14 +220,19 @@ export class Room {
     this.broadcast({ type: 'guess.begin', deadline });
 
     const humans = this.humanSeats().filter((s) => s.connected && s.playerId);
+    const botSeats = this.seats.filter((s) => s.kind === 'bot');
     const votedSeatIndexes = new Set<number>();
 
-    const botVotePromise = (async () => {
-      await sleep(1000 + Math.random() * (CONFIG.guessWindowMs - 3000));
-      const botSeat = this.seats.find((s) => s.kind === 'bot')!;
-      votedSeatIndexes.add(botSeat.index);
-      this.broadcast({ type: 'guess.progress', votedCount: votedSeatIndexes.size, total: this.seats.length });
-    })();
+    // Each Bot seat "votes" on its own randomized delay, independently of
+    // the others — if they all resolved together, three Bots finishing in
+    // lockstep would itself be a tell.
+    const botVotePromises = botSeats.map((botSeat) =>
+      (async () => {
+        await sleep(1000 + Math.random() * (CONFIG.guessWindowMs - 3000));
+        votedSeatIndexes.add(botSeat.index);
+        this.broadcast({ type: 'guess.progress', votedCount: votedSeatIndexes.size, total: this.seats.length });
+      })()
+    );
 
     const humanVotePromises = humans.map(async (seat) => {
       const guess = await waitForGuess(seat.playerId!, CONFIG.guessWindowMs);
@@ -229,7 +242,7 @@ export class Room {
     });
 
     await Promise.race([
-      Promise.all([...humanVotePromises, botVotePromise]),
+      Promise.all([...humanVotePromises, ...botVotePromises]),
       sleep(CONFIG.guessWindowMs).then(() => undefined)
     ]);
     void deadline;
@@ -237,7 +250,8 @@ export class Room {
 
   private async runReveal() {
     this.phase = 'reveal';
-    const botSeat = this.seats.find((s) => s.kind === 'bot')!;
+    const botSeats = this.seats.filter((s) => s.kind === 'bot');
+    const botSeatIndexes = botSeats.map((s) => s.index);
 
     const guesses = this.seats
       .filter((s) => s.kind === 'human')
@@ -245,7 +259,7 @@ export class Room {
 
     this.broadcast({
       type: 'reveal',
-      botSeatIndex: botSeat.index,
+      botSeatIndexes,
       guesses,
       identities: this.seats.map((s) => ({ seatIndex: s.index, nickname: s.nickname, avatar: s.avatar, isBot: s.kind === 'bot' }))
     });
@@ -257,7 +271,7 @@ export class Room {
 
     for (const seat of this.humanSeats()) {
       if (!seat.playerId) continue;
-      const correct = seat.guessSeatIndex === botSeat.index;
+      const correct = seat.guessSeatIndex !== null && botSeatIndexes.includes(seat.guessSeatIndex);
       const madeGuess = seat.guessSeatIndex !== null;
       const scoreDelta = correct ? CONFIG.correctGuess.score : CONFIG.wrongOrNoGuess.score;
       const coinDelta = correct ? CONFIG.correctGuess.coins : CONFIG.wrongOrNoGuess.coins;
@@ -280,7 +294,7 @@ export class Room {
         scoreDelta,
         coinDelta,
         leaderboardRank: rank,
-        botSeatIndex: botSeat.index,
+        botSeatIndexes,
         yourSeatIndex: seat.index
       });
     }

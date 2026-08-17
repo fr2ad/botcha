@@ -57,7 +57,7 @@ function Splash() {
       <div style={{ marginTop: 26 }}>
         <Wordmark size={30} />
       </div>
-      <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text-3)' }}>3 humans. 1 bot. Find it.</div>
+      <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--text-3)' }}>1-3 bots at the table. Find them.</div>
 
       <div style={{ position: 'absolute', bottom: 64, display: 'flex', gap: 7 }}>
         {[0, 0.2, 0.4].map((delay) => (
