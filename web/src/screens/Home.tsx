@@ -4,7 +4,7 @@ import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 import { InstallPrompt } from '../components/InstallPrompt';
-import { enablePushNotifications } from '../firebase';
+import { enablePushNotifications, getPushStatus, type PushStatus } from '../firebase';
 
 const COIN_ENTRY_PRICE = 25;
 const DAILY_HEARTS = 5;
@@ -23,12 +23,6 @@ export function Home() {
   const { state, joinQueue } = useGame();
   const [sheet, setSheet] = useState<'hearts' | 'how' | 'profile' | null>(null);
   const player = state.player;
-
-  useEffect(() => {
-    if (player) enablePushNotifications(player.id);
-    // Browsers only ever show the permission dialog once per origin — safe
-    // to call this on every Home mount, not just first login.
-  }, [player?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!player) return null;
 
@@ -193,7 +187,15 @@ function Profile({ onClose }: { onClose: () => void }) {
   const [picking, setPicking] = useState(false);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [push, setPush] = useState<PushStatus | null>(null);
   const player = state.player;
+
+  // Only reads the current state — the actual permission request has to come
+  // from the button's click handler, since browsers ignore it without a
+  // user gesture.
+  useEffect(() => {
+    getPushStatus().then(setPush);
+  }, []);
 
   if (!player) return null;
 
@@ -310,6 +312,30 @@ function Profile({ onClose }: { onClose: () => void }) {
             <i className="hgi-stroke hgi-user-circle" style={{ fontSize: 15, color: 'var(--accent-2)' }} />
             Change avatar
           </button>
+
+          {push && push !== 'unavailable' && (
+            <>
+              <button
+                className="btn-outline"
+                style={{ width: '100%', marginTop: 10 }}
+                disabled={push === 'granted' || push === 'denied' || push === 'needs-install'}
+                onClick={async () => setPush(await enablePushNotifications(player!.id))}
+              >
+                <i
+                  className={`hgi-stroke ${push === 'granted' ? 'hgi-checkmark-circle-02' : 'hgi-notification-01'}`}
+                  style={{ fontSize: 15, color: push === 'granted' ? 'var(--green)' : 'var(--accent-2)' }}
+                />
+                {push === 'granted' ? 'Notifications on' : 'Notify me when hearts refill'}
+              </button>
+              {(push === 'denied' || push === 'needs-install') && (
+                <div style={{ fontSize: 10.5, color: 'var(--text-5)', marginTop: 6, textAlign: 'center', lineHeight: 1.5 }}>
+                  {push === 'denied'
+                    ? 'Notifications are blocked for this site — turn them back on in your browser settings.'
+                    : 'On iPhone, add Botcha to your Home Screen first — Safari only allows notifications for installed apps.'}
+                </div>
+              )}
+            </>
+          )}
           <button
             className="btn-outline"
             style={{ width: '100%', marginTop: 10, color: 'var(--pink)', borderColor: 'rgba(255,92,138,.35)' }}

@@ -33,18 +33,26 @@ export function Result() {
   const botNames = joinNames(botSeats.map((s) => s.codeName));
 
   async function share() {
-    if (!result) return;
+    if (!result || !reveal) return;
     setSharing(true);
     try {
+      const inviteUrl = window.location.origin;
       const blob = await renderShareCard({
         outcome: result.outcome,
         scoreDelta: result.scoreDelta,
         coinDelta: result.coinDelta,
-        rank: result.leaderboardRank
+        rank: result.leaderboardRank,
+        roster: state.roster,
+        messages: state.messages,
+        botSeatIndexes: reveal.botSeatIndexes,
+        mySeatIndex: state.mySeatIndex,
+        inviteUrl
       });
+      const botLabel = botSeats.length > 1 ? `${botSeats.length} of them were bots` : `${botNames} was the bot`;
+      const shareText = `${outcomeLabel} ${botLabel}. Think you can spot one? Play Botcha:`;
       const file = new File([blob], 'botcha-result.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Botcha', text: outcomeLabel });
+        await navigator.share({ files: [file], title: 'Botcha', text: shareText, url: inviteUrl });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
