@@ -17,12 +17,12 @@ self.addEventListener('fetch', () => {});
 // runs but firebase.messaging() never receives a push (no project to
 // receive from), so this is a safe no-op until filled in.
 const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: ''
+  apiKey: 'AIzaSyCc503jzz4qGX9aIKoLS97IhlKvsWHEX98',
+  authDomain: 'botcha-505810.firebaseapp.com',
+  projectId: 'botcha-505810',
+  storageBucket: 'botcha-505810.firebasestorage.app',
+  messagingSenderId: '137270175354',
+  appId: '1:137270175354:web:6f6f436124337086f67dc3'
 };
 
 if (FIREBASE_CONFIG.apiKey) {

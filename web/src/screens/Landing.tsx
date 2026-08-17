@@ -59,7 +59,11 @@ export function Landing() {
         theme: 'filled_blue',
         size: 'large',
         shape: 'pill',
-        width: 260
+        width: 260,
+        // GIS follows the browser's locale by default, which renders a French
+        // button under an otherwise English UI. The rest of Botcha isn't
+        // localized yet, so pin it until it is.
+        locale: 'en'
       });
     };
     document.head.appendChild(script);
