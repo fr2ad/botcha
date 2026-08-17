@@ -25,8 +25,24 @@ const LEAK_PATTERNS = [
   /openai|anthropic|claude|gpt-\d|llama/i
 ];
 
-function sanitize(text: string, speakers: string[] = []): string {
-  let out = text.trim();
+// Some models (verified: gemini-2.5-flash-lite) echo the out-of-band turn
+// instruction straight into the reply instead of just following it — a
+// literal "Send your next chat message now, under 200 chars..." in chat is
+// as loud a tell as an AI admission. Cut everything from the first point a
+// long recognizable chunk of the instruction shows up verbatim.
+// ponytail: prefix-only match, misses a leak that starts mid-instruction —
+// widen to a sliding window if that shows up in practice.
+function stripInstructionLeak(text: string, instruction: string): string {
+  const MIN_LEAK_MATCH = 30;
+  for (let len = instruction.length; len >= MIN_LEAK_MATCH; len--) {
+    const idx = text.indexOf(instruction.slice(0, len));
+    if (idx !== -1) return text.slice(0, idx).trim();
+  }
+  return text;
+}
+
+function sanitize(text: string, speakers: string[] = [], instruction = ''): string {
+  let out = instruction ? stripInstructionLeak(text.trim(), instruction) : text.trim();
   for (const re of LEAK_PATTERNS) {
     if (re.test(out)) return MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
   }
@@ -54,6 +70,23 @@ function sanitize(text: string, speakers: string[] = []): string {
   return out || MOCK_REPLIES[Math.floor(Math.random() * MOCK_REPLIES.length)];
 }
 
+// Rotates what the bot is nudged to actually do this turn — a model left to
+// "react naturally" every turn converges on safe generic agreement, which is
+// its own tell (real players trash talk, needle each other, go off topic).
+// Weighted toward plain reaction so it's still the common case.
+const TURN_MOVES = [
+  'React to something specific someone actually said — don\'t just say "lol" or another one-word filler.',
+  'React to something specific someone actually said — don\'t just say "lol" or another one-word filler.',
+  "Ask the table something simple and offhand — where's someone from, what language do they usually talk, stuff like that.",
+  'Playfully accuse a specific person of being the bot, by name.',
+  'Trash talk someone a little, calling back to something they actually said.',
+  '@Mention someone by name and reply to them directly.'
+];
+
+function pickTurnMove(): string {
+  return TURN_MOVES[Math.floor(Math.random() * TURN_MOVES.length)];
+}
+
 export async function getBotReply(
   persona: Persona,
   history: ChatTurn[],
@@ -72,8 +105,15 @@ export async function getBotReply(
   // hidden reasoning tokens and returning nothing at all.
   const instruction =
     history.length === 0
-      ? `(Round ${round}/${CONFIG.tableRounds}. You're speaking first. Send an opening chat message now, under ${CONFIG.maxMessageLength} chars — something a real player might say to kick things off, not a generic greeting.)`
-      : `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. React to something specific someone actually said — don't just say "lol" or another one-word filler.)`;
+      ? `(Round ${round}/${CONFIG.tableRounds}. You're speaking first, nobody has said anything yet. Open with something plain and casual, under ${CONFIG.maxMessageLength} chars — the kind of throwaway line a real player types first. No jokes about people who haven't spoken.)`
+      : // Humans in this game chat in whatever language they like (Persian is
+        // common) — replying in English to an all-Persian table, or narrating
+        // other players in the third person, are both instant tells. So is a
+        // tidy, well-formed paragraph — real chat is one short fragment, not
+        // three clauses stitched together. pickTurnMove rotates the specific
+        // move (question, accusation, trash talk...) so it's not the same
+        // "react and move on" every single turn.
+        `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. Write in the SAME language and script the others are using, matching their tone and register — if they write Persian, write Persian. Talk TO people, not about them in the third person. One short sentence or fragment — no multi-clause run-ons, that reads as an essay, not a text. ${pickTurnMove()})`;
 
   // The bot's own past turns go back as `assistant`, not as another
   // "Name: text" user line. Feeding them as user messages made it treat its
@@ -120,7 +160,7 @@ export async function getBotReply(
     const json = (await res.json()) as any;
     const text = json?.choices?.[0]?.message?.content ?? '';
     if (!text) console.error('[bot] empty content', JSON.stringify(json?.choices?.[0]));
-    return sanitize(text, [...new Set(history.map((h) => h.speaker))]);
+    return sanitize(text, [...new Set(history.map((h) => h.speaker))], instruction);
   } catch (err) {
     // Timeout, network error, or non-2xx — the bot just skips this turn,
     // indistinguishable from a hesitant human (see SPEC 3.5). Logged so a
