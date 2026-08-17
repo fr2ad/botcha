@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { Confetti } from '../components/Ambient';
+import { ChatTranscript } from '../components/ChatTranscript';
 import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
@@ -222,6 +223,34 @@ export function Result() {
           );
         })}
       </div>
+
+      {state.messages.length > 0 && (
+        <div style={{ width: '100%', marginTop: 20 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
+            CHAT REPLAY · <span style={{ color: 'var(--accent-2)' }}>bot lines highlighted</span>
+          </div>
+          <div
+            style={{
+              background: 'var(--log)',
+              border: '1px solid rgba(255,255,255,.06)',
+              borderRadius: 20,
+              padding: 16,
+              maxHeight: 220,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12
+            }}
+          >
+            <ChatTranscript
+              messages={state.messages}
+              roster={state.roster}
+              mySeatIndex={state.mySeatIndex}
+              highlightSeatIndexes={reveal.botSeatIndexes}
+            />
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 16, width: '100%' }}>
         <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>

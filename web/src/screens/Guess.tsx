@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { ChatTranscript } from '../components/ChatTranscript';
 import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
 
@@ -29,6 +30,27 @@ export function Guess() {
         {state.guessDeadline && (
           <CountdownRing deadline={state.guessDeadline} totalMs={GUESS_WINDOW_MS} size={116} label="TO VOTE" />
         )}
+      </div>
+
+      <div style={{ width: '100%', marginBottom: 20 }}>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
+          REVIEW CHAT
+        </div>
+        <div
+          style={{
+            background: 'var(--log)',
+            border: '1px solid rgba(255,255,255,.06)',
+            borderRadius: 20,
+            padding: 16,
+            maxHeight: 220,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}
+        >
+          <ChatTranscript messages={state.messages} roster={state.roster} mySeatIndex={state.mySeatIndex} />
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>

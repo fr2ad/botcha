@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { ChatTranscript } from '../components/ChatTranscript';
 import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { Wordmark } from '../components/Wordmark';
@@ -11,23 +12,6 @@ const TOTAL_ROUNDS = 3;
 
 function mentionToken(codeName: string) {
   return '@' + codeName.replace(/\s+/g, '');
-}
-
-// Mentioning a seat is just a text convenience for readability — it does not
-// change turn order or obligate that seat to reply (chat stays turn-based, see ADR-0001).
-function renderWithMentions(text: string, roster: { codeName: string }[]) {
-  const tokens = roster.map((s) => mentionToken(s.codeName)).filter(Boolean);
-  if (tokens.length === 0) return text;
-  const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
-  return text.split(pattern).map((part, i) =>
-    tokens.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
-      <span key={i} style={{ color: 'var(--accent-2)', fontWeight: 700 }}>
-        {part}
-      </span>
-    ) : (
-      part
-    )
-  );
 }
 
 export function Table() {
@@ -54,7 +38,6 @@ export function Table() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [state.messages.length]);
 
-  const seatByIndex = (i: number) => state.roster.find((s) => s.seatIndex === i);
   const isMyTurn = state.turnSeatIndex === state.mySeatIndex;
 
   function submit() {
@@ -198,29 +181,12 @@ export function Table() {
         }}
       >
         <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800 }}>TABLE LOG</div>
-        {state.messages.length === 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text-5)' }}>Nobody's spoken yet. First turn is starting…</div>
-        )}
-        {state.messages.map((m, i) => {
-          const seat = seatByIndex(m.seatIndex);
-          const color = seat?.color ?? 'var(--text-5)';
-          return (
-            <div key={i} className="rise" style={{ display: 'flex', gap: 9 }}>
-              <SeatAvatar codeName={seat?.codeName ?? '?'} color={color} size={24} ringWidth={2} />
-              <div>
-                <div style={{ fontSize: 10.5, fontWeight: 800, color }}>
-                  {seat?.codeName}
-                  {m.seatIndex === state.mySeatIndex && (
-                    <span style={{ color: 'var(--text-5)', fontWeight: 600 }}> · you</span>
-                  )}
-                </div>
-                <div style={{ fontSize: 13, color: '#cfd2e0', lineHeight: 1.45 }}>
-                  {renderWithMentions(m.text, state.roster)}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <ChatTranscript
+          messages={state.messages}
+          roster={state.roster}
+          mySeatIndex={state.mySeatIndex}
+          emptyText="Nobody's spoken yet. First turn is starting…"
+        />
         <div ref={chatEndRef} />
       </div>
 
