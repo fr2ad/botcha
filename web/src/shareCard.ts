@@ -32,13 +32,14 @@ export type ShareCardData = {
   botSeatIndexes: number[];
   mySeatIndex: number | null;
   inviteUrl: string;
+  inviteCode: string;
 };
 
 const BOX_TOP = 450;
 const LINE_H = 31;
 const NAME_GAP = 30;
 const MSG_GAP = 26;
-const FOOTER_H = 190;
+const FOOTER_H = 220;
 
 export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   const canvas = document.createElement('canvas');
@@ -175,18 +176,25 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   }
 
   // ---- footer: wordmark + invite -------------------------------------------
+  // The invite code gets its own prominent line — the card is what actually
+  // gets forwarded/screenshotted, and a caption or link is easy to lose
+  // along the way, but text baked into the image survives.
   ctx.textAlign = 'center';
   ctx.fillStyle = ACCENT;
   ctx.font = '700 40px Fredoka, sans-serif';
-  ctx.fillText('BOTCHA', W / 2, H - 110);
+  ctx.fillText('BOTCHA', W / 2, H - 148);
 
   ctx.fillStyle = TEXT_3;
   ctx.font = '600 24px Nunito, sans-serif';
-  ctx.fillText('1-3 bots at the table. Can you find them?', W / 2, H - 72);
+  ctx.fillText('1-3 bots at the table. Can you find them?', W / 2, H - 110);
+
+  ctx.fillStyle = GREEN;
+  ctx.font = '800 26px Nunito, sans-serif';
+  ctx.fillText(`USE CODE ${d.inviteCode}`, W / 2, H - 68);
 
   ctx.fillStyle = TEXT_5;
   ctx.font = '700 22px Nunito, sans-serif';
-  ctx.fillText(d.inviteUrl.replace(/^https?:\/\//, ''), W / 2, H - 36);
+  ctx.fillText(d.inviteUrl.replace(/^https?:\/\//, ''), W / 2, H - 32);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('canvas export failed'))), 'image/png');

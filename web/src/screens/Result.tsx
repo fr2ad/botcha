@@ -7,6 +7,7 @@ import { ChatTranscript } from '../components/ChatTranscript';
 import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
+import { shareOrCopy } from '../share';
 
 function joinNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? '';
@@ -38,10 +39,11 @@ export function Result() {
   const botNames = joinNames(botSeats.map((s) => s.codeName));
 
   async function share() {
-    if (!result || !reveal) return;
+    if (!result || !reveal || !state.player) return;
     setSharing(true);
     try {
-      const inviteUrl = window.location.origin;
+      const inviteCode = state.player.invite_code;
+      const inviteUrl = `${window.location.origin}/#/?ref=${inviteCode}`;
       const blob = await renderShareCard({
         outcome: result.outcome,
         scoreDelta: result.scoreDelta,
@@ -51,21 +53,13 @@ export function Result() {
         messages: state.messages,
         botSeatIndexes: reveal.botSeatIndexes,
         mySeatIndex: state.mySeatIndex,
-        inviteUrl
+        inviteUrl,
+        inviteCode
       });
       const botLabel = botSeats.length > 1 ? `${botSeats.length} of them were bots` : `${botNames} was the bot`;
-      const shareText = `${outcomeLabel} ${botLabel}. Think you can spot one? Play Botcha:`;
+      const shareText = `${outcomeLabel} ${botLabel}. Think you can spot one? Play Botcha, use my code ${inviteCode} for bonus coins:`;
       const file = new File([blob], 'botcha-result.png', { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Botcha', text: shareText, url: inviteUrl });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'botcha-result.png';
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+      await shareOrCopy({ title: 'Botcha', text: shareText, url: inviteUrl, file });
     } catch {
       // user cancelled share sheet or export failed — no-op
     } finally {
