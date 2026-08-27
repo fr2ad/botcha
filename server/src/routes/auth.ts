@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { nanoid } from 'nanoid';
 import { AVATAR_POOL, GOOGLE_CLIENT_ID } from '../config.js';
 import {
+  applyInvite,
   createPlayer,
   getPlayer,
   getPlayerByGoogleId,
@@ -18,20 +19,24 @@ export function registerAuthRoutes(app: FastifyInstance) {
   // Dev/mock login: no real OAuth, the client sends a nickname + avatar it
   // picked. Left in place even once Google login is configured — useful for
   // local dev without a Google Cloud project, and for the smoke test.
-  app.post<{ Body: { nickname: string; avatar: string } }>('/api/auth/mock-login', async (req, reply) => {
-    const { nickname, avatar } = req.body ?? {};
-    if (!nickname || !avatar) {
-      return reply.code(400).send({ error: 'nickname and avatar are required' });
+  app.post<{ Body: { nickname: string; avatar: string; inviteCode?: string } }>(
+    '/api/auth/mock-login',
+    async (req, reply) => {
+      const { nickname, avatar, inviteCode } = req.body ?? {};
+      if (!nickname || !avatar) {
+        return reply.code(400).send({ error: 'nickname and avatar are required' });
+      }
+      // The avatar id is echoed to every other player in the room, so it has to
+      // be one we actually draw — not whatever string the client felt like.
+      if (!AVATAR_POOL.includes(avatar)) {
+        return reply.code(400).send({ error: 'unknown avatar' });
+      }
+      const id = nanoid(12);
+      const player = createPlayer({ id, googleId: `mock-${id}`, nickname: nickname.slice(0, 24), avatar });
+      if (inviteCode?.trim()) applyInvite(player.id, inviteCode.trim());
+      return { player: withStats(player.id) };
     }
-    // The avatar id is echoed to every other player in the room, so it has to
-    // be one we actually draw — not whatever string the client felt like.
-    if (!AVATAR_POOL.includes(avatar)) {
-      return reply.code(400).send({ error: 'unknown avatar' });
-    }
-    const id = nanoid(12);
-    const player = createPlayer({ id, googleId: `mock-${id}`, nickname: nickname.slice(0, 24), avatar });
-    return { player: withStats(player.id) };
-  });
+  );
 
   // Real Google Sign-In. The client gets an ID token from Google Identity
   // Services (no client secret involved — GIS's token-based flow only needs
@@ -62,10 +67,10 @@ export function registerAuthRoutes(app: FastifyInstance) {
 
   // Finishes signup for a `newGoogleUser` from above: same shape as
   // mock-login, but keyed to the verified googleId instead of a fake one.
-  app.post<{ Body: { googleId: string; nickname: string; avatar: string } }>(
+  app.post<{ Body: { googleId: string; nickname: string; avatar: string; inviteCode?: string } }>(
     '/api/auth/google-signup',
     async (req, reply) => {
-      const { googleId, nickname, avatar } = req.body ?? {};
+      const { googleId, nickname, avatar, inviteCode } = req.body ?? {};
       if (!googleId || !nickname || !avatar) {
         return reply.code(400).send({ error: 'googleId, nickname and avatar are required' });
       }
@@ -77,6 +82,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       }
       const id = nanoid(12);
       const player = createPlayer({ id, googleId, nickname: nickname.slice(0, 24), avatar });
+      if (inviteCode?.trim()) applyInvite(player.id, inviteCode.trim());
       return { player: withStats(player.id) };
     }
   );

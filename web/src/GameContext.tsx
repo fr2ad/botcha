@@ -136,8 +136,8 @@ function reducer(state: State, action: Action): State {
 
 type Ctx = {
   state: State;
-  login: (nickname: string, avatar: string) => Promise<void>;
-  loginWithGoogleSignup: (googleId: string, nickname: string, avatar: string) => Promise<void>;
+  login: (nickname: string, avatar: string, inviteCode?: string) => Promise<void>;
+  loginWithGoogleSignup: (googleId: string, nickname: string, avatar: string, inviteCode?: string) => Promise<void>;
   loginWithExistingPlayer: (player: Player) => void;
   resumeSession: () => Promise<boolean>;
   joinQueue: () => void;
@@ -187,8 +187,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (nickname: string, avatar: string) => {
-      const { player } = await mockLogin(nickname, avatar);
+    async (nickname: string, avatar: string, inviteCode?: string) => {
+      const { player } = await mockLogin(nickname, avatar, inviteCode);
       localStorage.setItem(STORAGE_KEY, player.id);
       dispatch({ type: 'SET_PLAYER', player });
       connect(player.id);
@@ -199,8 +199,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // Second half of real Google Sign-In, for a `newGoogleUser` (see
   // api.googleLogin) once they've picked a Nickname and Avatar.
   const loginWithGoogleSignup = useCallback(
-    async (googleId: string, nickname: string, avatar: string) => {
-      const { player } = await googleSignup(googleId, nickname, avatar);
+    async (googleId: string, nickname: string, avatar: string, inviteCode?: string) => {
+      const { player } = await googleSignup(googleId, nickname, avatar, inviteCode);
       localStorage.setItem(STORAGE_KEY, player.id);
       dispatch({ type: 'SET_PLAYER', player });
       connect(player.id);

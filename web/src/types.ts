@@ -5,6 +5,7 @@ export type Player = {
   coins: number;
   score: number;
   hearts_remaining: number;
+  invite_code: string;
   rank: number;
   history: { correct: number; wrong: number; noGuess: number; games: number };
 };

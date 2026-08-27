@@ -4,6 +4,7 @@ import { useGame } from '../GameContext';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 
 const MAX_NICK = 24;
+const INVITE_REF_KEY = 'botcha_invite_ref';
 
 export function Onboarding() {
   const navigate = useNavigate();
@@ -14,6 +15,9 @@ export function Onboarding() {
   const googleId = (location.state as { googleId?: string } | null)?.googleId;
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState(AVATAR_POOL[0]);
+  // Prefilled from a shared `/#/?ref=CODE` link (captured in App.tsx), still
+  // editable in case the visitor has their own code to use instead.
+  const [inviteCode, setInviteCode] = useState(() => localStorage.getItem(INVITE_REF_KEY) ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +29,10 @@ export function Onboarding() {
     setBusy(true);
     setError(null);
     try {
-      if (googleId) await loginWithGoogleSignup(googleId, nickname.trim(), avatar);
-      else await login(nickname.trim(), avatar);
+      const code = inviteCode.trim() || undefined;
+      if (googleId) await loginWithGoogleSignup(googleId, nickname.trim(), avatar, code);
+      else await login(nickname.trim(), avatar, code);
+      localStorage.removeItem(INVITE_REF_KEY);
       navigate('/home');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -70,6 +76,15 @@ export function Onboarding() {
           {nickname.length}/{MAX_NICK}
         </span>
       </form>
+
+      <div className="field" style={{ marginBottom: 20 }}>
+        <input
+          value={inviteCode}
+          onChange={(e) => setInviteCode(e.target.value.trim().slice(0, 12))}
+          placeholder="Invite code (optional)"
+          aria-label="Invite code"
+        />
+      </div>
 
       <div
         style={{

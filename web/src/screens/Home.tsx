@@ -5,6 +5,7 @@ import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 import { InstallPrompt } from '../components/InstallPrompt';
 import { enablePushNotifications, getPushStatus, type PushStatus } from '../firebase';
+import { shareOrCopy } from '../share';
 
 const COIN_ENTRY_PRICE = 25;
 const DAILY_HEARTS = 5;
@@ -188,7 +189,24 @@ function Profile({ onClose }: { onClose: () => void }) {
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [push, setPush] = useState<PushStatus | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const player = state.player;
+
+  async function shareInvite() {
+    if (!player) return;
+    const url = `${window.location.origin}/#/?ref=${player.invite_code}`;
+    try {
+      await shareOrCopy({
+        title: 'Botcha',
+        text: `Join me on Botcha — spot the bot at the table. Use my code ${player.invite_code} for bonus coins:`,
+        url
+      });
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      // user cancelled the share sheet — no-op
+    }
+  }
 
   // Only reads the current state — the actual permission request has to come
   // from the button's click handler, since browsers ignore it without a
@@ -244,6 +262,30 @@ function Profile({ onClose }: { onClose: () => void }) {
         <Stat label="caught" value={player.history.correct} color="var(--green)" />
         <Stat label="missed" value={player.history.wrong + player.history.noGuess} color="var(--pink)" />
         <Stat label="games" value={player.history.games} color="var(--text-2)" />
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          marginTop: 14,
+          padding: '10px 14px',
+          borderRadius: 14,
+          background: 'var(--surface)'
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 9.5, letterSpacing: 1, color: 'var(--text-5)', fontWeight: 800 }}>INVITE CODE</div>
+          <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: 15, letterSpacing: 1 }}>
+            {player.invite_code}
+          </div>
+        </div>
+        <button className="btn-outline" style={{ flexShrink: 0, padding: '8px 14px' }} onClick={shareInvite}>
+          <i className={`hgi-stroke ${inviteCopied ? 'hgi-checkmark-circle-02' : 'hgi-share-01'}`} style={{ fontSize: 14 }} />
+          {inviteCopied ? 'Done' : 'Share'}
+        </button>
       </div>
 
       {picking ? (

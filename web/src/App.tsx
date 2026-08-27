@@ -80,10 +80,16 @@ function Splash() {
 }
 
 function Boot({ children }: { children: React.ReactNode }) {
-  const { resumeSession } = useGame();
+  const { state, resumeSession } = useGame();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Captures a shared `/#/?ref=CODE` invite link so Onboarding can prefill
+    // it, whether or not this visitor is already logged in.
+    if (!state.player) {
+      const ref = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('ref');
+      if (ref) localStorage.setItem('botcha_invite_ref', ref);
+    }
     resumeSession().finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

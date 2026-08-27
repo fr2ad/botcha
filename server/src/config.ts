@@ -14,6 +14,9 @@ export const CONFIG = {
   guessWindowMs: 20_000,
   dailyHearts: 5,
   signupBonusCoins: 50,
+  // Paid on top of signupBonusCoins the first time a new player's signup
+  // carries a valid, non-self invite code — split so both sides feel it.
+  inviteRewardCoins: { inviter: 30, invitee: 20 },
   correctGuess: { score: 20, coins: 5 },
   wrongOrNoGuess: { score: -10, coins: 0 },
   coinEntryPrice: 25,

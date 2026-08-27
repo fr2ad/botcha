@@ -14,10 +14,10 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export function mockLogin(nickname: string, avatar: string) {
+export function mockLogin(nickname: string, avatar: string, inviteCode?: string) {
   return req<{ player: Player }>('/api/auth/mock-login', {
     method: 'POST',
-    body: JSON.stringify({ nickname, avatar })
+    body: JSON.stringify({ nickname, avatar, inviteCode })
   });
 }
 
@@ -28,10 +28,10 @@ export function googleLogin(idToken: string) {
   });
 }
 
-export function googleSignup(googleId: string, nickname: string, avatar: string) {
+export function googleSignup(googleId: string, nickname: string, avatar: string, inviteCode?: string) {
   return req<{ player: Player }>('/api/auth/google-signup', {
     method: 'POST',
-    body: JSON.stringify({ googleId, nickname, avatar })
+    body: JSON.stringify({ googleId, nickname, avatar, inviteCode })
   });
 }
 

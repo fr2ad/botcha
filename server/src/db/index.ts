@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { nanoid } from 'nanoid';
 import { CONFIG } from '../config.js';
 
 // Node 22's built-in sqlite module — no native build step, which matters
@@ -21,6 +22,8 @@ CREATE TABLE IF NOT EXISTS players (
   hearts_remaining INTEGER NOT NULL DEFAULT ${CONFIG.dailyHearts},
   hearts_reset_at TEXT NOT NULL,
   fcm_token TEXT,
+  invite_code TEXT,
+  invited_by TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -90,6 +93,20 @@ try {
 } catch {
   // already has the column
 }
+try {
+  db.exec(`ALTER TABLE players ADD COLUMN invite_code TEXT`);
+} catch {
+  // already has the column
+}
+try {
+  db.exec(`ALTER TABLE players ADD COLUMN invited_by TEXT`);
+} catch {
+  // already has the column
+}
+// A separate index rather than an inline UNIQUE column constraint — works the
+// same whether invite_code came from CREATE TABLE (fresh DB) or ALTER TABLE
+// above (existing DB), and IF NOT EXISTS makes it safe to run every boot.
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_players_invite_code ON players(invite_code)`);
 
 export type PlayerRow = {
   id: string;
@@ -101,6 +118,8 @@ export type PlayerRow = {
   hearts_remaining: number;
   hearts_reset_at: string;
   fcm_token: string | null;
+  invite_code: string;
+  invited_by: string | null;
   created_at: string;
 };
 
@@ -155,14 +174,43 @@ export function getPlayerByGoogleId(googleId: string): PlayerRow | undefined {
 
 export function createPlayer(input: { id: string; googleId: string; nickname: string; avatar: string }): PlayerRow {
   db.prepare(
-    `INSERT INTO players (id, google_id, nickname, avatar, coins, score, hearts_remaining, hearts_reset_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`
-  ).run(input.id, input.googleId, input.nickname, input.avatar, CONFIG.signupBonusCoins, CONFIG.dailyHearts, todayResetStamp());
+    `INSERT INTO players (id, google_id, nickname, avatar, coins, score, hearts_remaining, hearts_reset_at, invite_code)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)`
+  ).run(
+    input.id,
+    input.googleId,
+    input.nickname,
+    input.avatar,
+    CONFIG.signupBonusCoins,
+    CONFIG.dailyHearts,
+    todayResetStamp(),
+    nanoid(8)
+  );
   db.prepare(`INSERT INTO coin_ledger (player_id, delta, reason) VALUES (?, ?, 'signup_bonus')`).run(
     input.id,
     CONFIG.signupBonusCoins
   );
   return getPlayer(input.id)!;
+}
+
+export function getPlayerByInviteCode(code: string): PlayerRow | undefined {
+  const p = db.prepare(`SELECT * FROM players WHERE invite_code = ?`).get(code) as PlayerRow | undefined;
+  return p ? ensureDailyHeartsReset(p) : undefined;
+}
+
+// Silently no-ops on a bad/self code rather than erroring — a mistyped
+// invite shouldn't block signup. `invited_by IS NULL` in the WHERE is what
+// makes "only one inviter, ever" hold even under a racing double-call.
+export function applyInvite(newPlayerId: string, code: string): boolean {
+  const inviter = getPlayerByInviteCode(code);
+  if (!inviter || inviter.id === newPlayerId) return false;
+  const result = db
+    .prepare(`UPDATE players SET invited_by = ? WHERE id = ? AND invited_by IS NULL`)
+    .run(inviter.id, newPlayerId);
+  if (result.changes === 0) return false;
+  adjustCoins(inviter.id, CONFIG.inviteRewardCoins.inviter, 'invite_reward');
+  adjustCoins(newPlayerId, CONFIG.inviteRewardCoins.invitee, 'invite_bonus');
+  return true;
 }
 
 export function setAvatar(playerId: string, avatar: string) {
