@@ -55,8 +55,48 @@ export function Table() {
   return (
     <div
       className="screen"
-      style={{ paddingLeft: 20, paddingRight: 20, paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}
+      style={{
+        // Fixed to the viewport height (not just min-height, which is all
+        // .screen normally sets) so the table log is the only thing that
+        // scrolls internally as messages pile up — otherwise the whole
+        // screen grows past the viewport by round 2-3 and the composer
+        // (the one thing you need during a 20s timed turn) scrolls out of
+        // view along with it.
+        height: '100dvh',
+        paddingLeft: 20,
+        paddingRight: 20,
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))'
+      }}
     >
+      {!state.wsConnected && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            top: 'calc(8px + env(safe-area-inset-top))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            background: 'rgba(255,207,61,.14)',
+            border: '1px solid rgba(255,207,61,.4)',
+            color: 'var(--amber)',
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            padding: '6px 14px',
+            borderRadius: 999
+          }}
+        >
+          <span
+            aria-hidden
+            style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)', animation: 'blink 1.1s step-end infinite' }}
+          />
+          Reconnecting…
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0 14px' }}>
         <span style={{ color: 'var(--accent-2)' }}>
           <Wordmark size={14} />
@@ -96,15 +136,23 @@ export function Table() {
           const silent = state.silentSeats.includes(seat.seatIndex);
           const isYou = seat.seatIndex === state.mySeatIndex;
           return (
-            <div
+            <button
               key={seat.seatIndex}
+              type="button"
               onClick={() => mention(seat.codeName)}
+              disabled={!isMyTurn}
+              aria-label={isMyTurn ? `Mention ${seat.codeName} — doesn't force a reply` : seat.codeName}
               title={isMyTurn ? `Mention ${seat.codeName} — doesn't force a reply` : undefined}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 6,
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                font: 'inherit',
+                opacity: 1,
                 // Equal shares, not a fixed width: 4 x 92px overflowed a 375px
                 // phone and got clipped by .screen's overflow:hidden. flex:1
                 // still never reflows on the ring swap, which was the reason
@@ -161,7 +209,7 @@ export function Table() {
                   SILENT
                 </span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -259,7 +307,9 @@ export function Table() {
           textAlign: 'center',
           fontSize: 9.5,
           letterSpacing: 2,
-          color: 'var(--text-5)',
+          // Was --text-5 — the lowest-contrast token in the system, on the
+          // most important reminder on this screen. Bumped one step up.
+          color: 'var(--text-4)',
           marginTop: 12,
           fontWeight: 800
         }}

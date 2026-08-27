@@ -69,6 +69,15 @@ a {
   color: inherit;
 }
 
+/* :focus-visible (not :focus) so mouse/touch clicks stay outline-free while
+   keyboard navigation gets a visible ring — index.css had no focus styling
+   at all before this, so keyboard users had no way to see where they were. */
+:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ---------- layout ---------- */
 
 .app-shell {

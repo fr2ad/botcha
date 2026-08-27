@@ -21,6 +21,35 @@ export function Guess() {
 
   return (
     <div className="screen" style={{ alignItems: 'center' }}>
+      {!state.wsConnected && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            top: 'calc(8px + env(safe-area-inset-top))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            background: 'rgba(255,207,61,.14)',
+            border: '1px solid rgba(255,207,61,.4)',
+            color: 'var(--amber)',
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            padding: '6px 14px',
+            borderRadius: 999
+          }}
+        >
+          <span
+            aria-hidden
+            style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)', animation: 'blink 1.1s step-end infinite' }}
+          />
+          Reconnecting…
+        </div>
+      )}
       <div style={{ padding: '28px 0 6px', fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 22 }}>
         Who's a bot?
       </div>

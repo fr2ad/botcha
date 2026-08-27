@@ -7,6 +7,7 @@ import type { ChatMessage, GamePhase, Player, RevealData, ResultData, RosterEntr
 type State = {
   player: Player | null;
   phase: GamePhase;
+  wsConnected: boolean;
   onlineCount: number;
   queueSize: number;
   queueBlocked: string | null;
@@ -30,6 +31,7 @@ type State = {
 const initialState: State = {
   player: null,
   phase: 'idle',
+  wsConnected: false,
   onlineCount: 0,
   queueSize: 0,
   queueBlocked: null,
@@ -54,6 +56,8 @@ type Action = { type: string; [key: string]: any };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'WS_STATUS':
+      return { ...state, wsConnected: action.connected };
     case 'SET_PLAYER':
       return { ...state, player: action.player };
     case 'PATCH_PLAYER':
@@ -146,7 +150,7 @@ function reducer(state: State, action: Action): State {
     case 'game.none':
       return { ...state, phase: 'failed' };
     case 'RESET_TO_HOME':
-      return { ...initialState, player: state.player, onlineCount: state.onlineCount };
+      return { ...initialState, player: state.player, onlineCount: state.onlineCount, wsConnected: state.wsConnected };
     case 'LOGOUT':
       return initialState;
     default:
@@ -186,6 +190,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const ws = new WebSocket(wsUrl(playerId));
       wsRef.current = ws;
       ws.onopen = () => {
+        dispatch({ type: 'WS_STATUS', connected: true });
         for (const msg of outboxRef.current) ws.send(JSON.stringify(msg));
         outboxRef.current = [];
       };
@@ -209,6 +214,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
       ws.onclose = () => {
         wsRef.current = null;
+        dispatch({ type: 'WS_STATUS', connected: false });
         // Server restart / network blip — reconnect so a stuck "Finding
         // humans..." screen doesn't silently strand the player forever.
         if (!intentionalCloseRef.current) setTimeout(open, 1500);
@@ -264,10 +270,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [connect]);
 
+  // Any non-OPEN state (CONNECTING, CLOSING, CLOSED, or no socket at all)
+  // queues rather than drops — the auto-reconnect in connect() always flushes
+  // the outbox on the next open, so a Guess or Turn message can no longer
+  // silently vanish just because the socket happened to be down at that
+  // instant. wsConnected (surfaced to Table/Guess) is what tells the player
+  // whether it's actually in flight yet.
   const send = useCallback((msg: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg));
-    } else if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+    } else {
       outboxRef.current.push(msg);
     }
   }, []);

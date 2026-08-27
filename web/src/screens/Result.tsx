@@ -22,6 +22,7 @@ export function Result() {
   const [comment, setComment] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [showReveal, setShowReveal] = useState(false);
 
   const result = state.result;
   const reveal = state.reveal;
@@ -167,11 +168,36 @@ export function Result() {
         Leaderboard <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>#{result.leaderboardRank}</span>
       </div>
 
+      {/* Primary CTA moved above the identity reveal / chat replay so it sits
+          with the rest of the outcome, right at the game's peak-end moment,
+          instead of being buried under everything else on a long scroll. */}
+      <div style={{ display: 'flex', gap: 10, marginTop: 24, width: '100%' }}>
+        <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>
+          <i className="hgi-stroke hgi-share-01" style={{ fontSize: 14 }} />
+          {sharing ? 'Saving…' : 'Share'}
+        </button>
+        <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
+          {correct ? 'Play again' : 'Run it back'}
+        </button>
+      </div>
+
+      <button
+        className="btn-text"
+        style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 6 }}
+        onClick={() => setShowReveal((v) => !v)}
+        aria-expanded={showReveal}
+      >
+        {showReveal ? 'Hide full reveal' : 'See who was who'}
+        <i className={`hgi-stroke ${showReveal ? 'hgi-arrow-up-01' : 'hgi-arrow-down-01'}`} style={{ fontSize: 12 }} />
+      </button>
+
+      {showReveal && (
+      <>
       <div
         style={{
           width: '100%',
           borderTop: '1px solid rgba(255,255,255,.07)',
-          marginTop: 24,
+          marginTop: 14,
           paddingTop: 18,
           display: 'flex',
           flexDirection: 'column',
@@ -271,6 +297,8 @@ export function Result() {
           </div>
         </div>
       )}
+      </>
+      )}
 
       {!feedbackSent ? (
         <div
@@ -337,17 +365,9 @@ export function Result() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 16, width: '100%' }}>
-        <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>
-          <i className="hgi-stroke hgi-share-01" style={{ fontSize: 14 }} />
-          {sharing ? 'Saving…' : 'Share'}
-        </button>
-        <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
-          {correct ? 'Play again' : 'Run it back'}
-        </button>
-      </div>
       <button
         className="btn-text"
+        style={{ marginTop: 16 }}
         onClick={() => {
           goHome();
           navigate('/home');
