@@ -125,6 +125,26 @@ function reducer(state: State, action: Action): State {
       };
     case 'game.cancelled':
       return { ...state, phase: 'cancelled', cancelReason: action.reason };
+    case 'game.resync':
+      return {
+        ...state,
+        phase: action.phase,
+        gameId: action.gameId,
+        mySeatIndex: action.yourSeatIndex,
+        roster: action.roster,
+        round: action.round,
+        messages: action.messages,
+        silentSeats: action.silentSeats,
+        turnSeatIndex: action.turnSeatIndex,
+        turnDeadline: action.turnDeadline,
+        guessDeadline: action.guessDeadline,
+        myGuess: null,
+        reveal: null,
+        result: null,
+        cancelReason: null
+      };
+    case 'game.none':
+      return { ...state, phase: 'failed' };
     case 'RESET_TO_HOME':
       return { ...initialState, player: state.player, onlineCount: state.onlineCount };
     case 'LOGOUT':
@@ -152,6 +172,7 @@ type Ctx = {
 const GameCtx = createContext<Ctx | null>(null);
 
 const STORAGE_KEY = 'botcha_player_id';
+const ACTIVE_GAME_KEY = 'botcha_active_game';
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -171,6 +192,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       ws.onmessage = (evt) => {
         try {
           const msg = JSON.parse(evt.data);
+          // Tracked purely so a reload can tell "no active game" (normal)
+          // apart from "my active game is gone" (dead-room bug fix below).
+          if (msg.type === 'game.start' || msg.type === 'game.resync') {
+            localStorage.setItem(ACTIVE_GAME_KEY, msg.gameId);
+          } else if (msg.type === 'game.result' || msg.type === 'game.cancelled') {
+            localStorage.removeItem(ACTIVE_GAME_KEY);
+          } else if (msg.type === 'game.none') {
+            if (!localStorage.getItem(ACTIVE_GAME_KEY)) return; // fresh login, nothing to resume
+            localStorage.removeItem(ACTIVE_GAME_KEY);
+          }
           dispatch(msg);
         } catch {
           // ignore malformed frames

@@ -47,7 +47,8 @@ export type GamePhase =
   | 'guess'
   | 'reveal'
   | 'result'
-  | 'cancelled';
+  | 'cancelled'
+  | 'failed';
 
 export type LeaderboardEntry = {
   id: string;

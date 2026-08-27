@@ -36,6 +36,13 @@ export class Room {
   history: ChatTurn[] = [];
   cancelled = false;
 
+  // Tracked purely so a reconnecting client can be handed a resync snapshot
+  // (routes/ws.ts) instead of silently missing the rest of the game.
+  turnSeatIndex: number | null = null;
+  turnDeadline: number | null = null;
+  guessDeadline: number | null = null;
+  log: Array<{ seatIndex: number; round: number; text: string }> = [];
+
   // Never 0 Bots (nothing to hunt) and never a Player-less table — the
   // queue only ever hands this humanPlayerIds.length between 1 and
   // seatsPerRoom - 1, so botCount lands in the same range automatically.
@@ -122,6 +129,24 @@ export class Room {
     }));
   }
 
+  // What a reconnecting client needs to jump straight back into the right
+  // screen instead of landing on Home with a stale, phase-less state.
+  snapshotFor(seat: Seat) {
+    return {
+      type: 'game.resync',
+      phase: this.phase,
+      gameId: this.id,
+      yourSeatIndex: seat.index,
+      roster: this.publicRoster(),
+      round: this.round,
+      messages: this.log,
+      silentSeats: this.seats.filter((s) => s.silentBadge).map((s) => s.index),
+      turnSeatIndex: this.turnSeatIndex,
+      turnDeadline: this.turnDeadline,
+      guessDeadline: this.guessDeadline
+    };
+  }
+
   handleDisconnect(playerId: string) {
     const seat = this.seats.find((s) => s.playerId === playerId);
     if (!seat) return;
@@ -180,6 +205,8 @@ export class Room {
 
   private async runTurn(seat: Seat, round: number) {
     const deadline = Date.now() + CONFIG.turnWindowMs;
+    this.turnSeatIndex = seat.index;
+    this.turnDeadline = deadline;
     this.broadcast({ type: 'turn.begin', seatIndex: seat.index, round, deadline });
 
     let text: string | null = null;
@@ -202,6 +229,7 @@ export class Room {
       const clean = text.trim().slice(0, CONFIG.maxMessageLength);
       seat.skippedTurns = 0;
       this.history.push({ speaker: seat.codeName, text: clean });
+      this.log.push({ seatIndex: seat.index, round, text: clean });
       recordMessage(this.id, seat.index, round, clean);
       this.broadcast({ type: 'turn.message', seatIndex: seat.index, round, text: clean });
     } else {
@@ -217,6 +245,9 @@ export class Room {
   private async runGuessPhase() {
     this.phase = 'guess';
     const deadline = Date.now() + CONFIG.guessWindowMs;
+    this.turnSeatIndex = null;
+    this.turnDeadline = null;
+    this.guessDeadline = deadline;
     this.broadcast({ type: 'guess.begin', deadline });
 
     const humans = this.humanSeats().filter((s) => s.connected && s.playerId);

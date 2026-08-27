@@ -38,6 +38,18 @@ export function leaveQueue(playerId: string) {
   scheduleFill();
 }
 
+// Same liveness condition handleDisconnect already uses — a room mid
+// roster/chat/guess/reveal still has a seat worth reconnecting into; one
+// that's finished or cancelled does not (see Room.handleDisconnect).
+export function findActiveSeat(playerId: string) {
+  for (const room of activeRooms.values()) {
+    if (room.phase === 'result' || room.phase === 'cancelled') continue;
+    const seat = room.seats.find((s) => s.kind === 'human' && s.playerId === playerId);
+    if (seat) return { room, seat };
+  }
+  return null;
+}
+
 export function onDisconnect(playerId: string) {
   leaveQueue(playerId);
   for (const room of activeRooms.values()) {

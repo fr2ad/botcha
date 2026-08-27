@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { GameProvider, useGame } from './GameContext';
 import { Ambient } from './components/Ambient';
 import { Wordmark } from './components/Wordmark';
@@ -16,6 +16,8 @@ import { Leaderboard } from './screens/Leaderboard';
 import { BotTest } from './screens/BotTest';
 import { Privacy } from './screens/Privacy';
 import { Terms } from './screens/Terms';
+import { SessionEnded } from './screens/SessionEnded';
+import type { GamePhase } from './types';
 
 function Splash() {
   return (
@@ -98,9 +100,32 @@ function Boot({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Maps a resynced phase to the screen that renders it — only consulted when
+// the user is sitting on Home/landing while the phase says otherwise, which
+// can only happen right after a reconnect resync (GameContext's
+// 'game.resync'/'game.none' handling). Normal in-game navigation already
+// happens from within each screen and is untouched by this.
+const PHASE_ROUTE: Partial<Record<GamePhase, string>> = {
+  roster: '/roster',
+  chat: '/table',
+  guess: '/guess',
+  reveal: '/reveal',
+  result: '/result',
+  failed: '/session-ended'
+};
+
 function Router() {
   const { state } = useGame();
+  const navigate = useNavigate();
+  const location = useLocation();
   const loggedIn = !!state.player;
+
+  useEffect(() => {
+    const target = PHASE_ROUTE[state.phase];
+    if (target && (location.pathname === '/home' || location.pathname === '/')) {
+      navigate(target, { replace: true });
+    }
+  }, [state.phase, location.pathname, navigate]);
 
   return (
     <Routes>
@@ -119,6 +144,7 @@ function Router() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/bot-test" element={<BotTest />} />
+      <Route path="/session-ended" element={loggedIn ? <SessionEnded /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
