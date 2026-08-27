@@ -6,6 +6,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerLeaderboardRoutes } from './routes/leaderboard.js';
 import { registerWsRoute } from './routes/ws.js';
 import { registerBotTestRoutes } from './routes/bot-test.js';
+import { registerFeedbackRoutes } from './routes/feedback.js';
 import { startScheduler } from './scheduler.js';
 import './db/index.js'; // ensure schema is created on boot
 
@@ -18,6 +19,7 @@ registerAuthRoutes(app);
 registerLeaderboardRoutes(app);
 registerWsRoute(app);
 registerBotTestRoutes(app);
+registerFeedbackRoutes(app);
 
 app.get('/api/health', async () => ({ ok: true }));
 

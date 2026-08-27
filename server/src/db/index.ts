@@ -72,6 +72,15 @@ CREATE TABLE IF NOT EXISTS play_history (
   coin_delta INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS game_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id TEXT NOT NULL,
+  player_id TEXT NOT NULL,
+  rating INTEGER NOT NULL,
+  comment TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 // Belt-and-suspenders for anyone with a DB file from before fcm_token
@@ -271,6 +280,15 @@ export function getPlayerRank(playerId: string): number {
     )
     .get(playerId) as { rank: number };
   return row.rank;
+}
+
+export function recordFeedback(gameId: string, playerId: string, rating: number, comment: string | null) {
+  db.prepare(`INSERT INTO game_feedback (game_id, player_id, rating, comment) VALUES (?, ?, ?, ?)`).run(
+    gameId,
+    playerId,
+    rating,
+    comment
+  );
 }
 
 export function getPlayerHistory(playerId: string) {

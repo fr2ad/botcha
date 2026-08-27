@@ -57,6 +57,13 @@ export function fetchLeaderboard() {
   return req<{ players: LeaderboardEntry[] }>('/api/leaderboard');
 }
 
+export function submitFeedback(gameId: string, playerId: string, rating: number, comment?: string) {
+  return req<{ ok: true }>('/api/feedback', {
+    method: 'POST',
+    body: JSON.stringify({ gameId, playerId, rating, comment })
+  });
+}
+
 export function botTestReply(history: { speaker: string; text: string }[]) {
   return req<{ reply: string; persona: string }>('/api/bot-test/reply', {
     method: 'POST',

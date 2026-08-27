@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
+import { submitFeedback } from '../api';
 import { Confetti } from '../components/Ambient';
 import { ChatTranscript } from '../components/ChatTranscript';
 import { Orb } from '../components/Orb';
@@ -16,6 +17,10 @@ export function Result() {
   const navigate = useNavigate();
   const { state, goHome, joinQueue } = useGame();
   const [sharing, setSharing] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [sendingFeedback, setSendingFeedback] = useState(false);
 
   const result = state.result;
   const reveal = state.reveal;
@@ -65,6 +70,19 @@ export function Result() {
       // user cancelled share sheet or export failed — no-op
     } finally {
       setSharing(false);
+    }
+  }
+
+  async function sendFeedback() {
+    if (!rating || !state.gameId || !state.player) return;
+    setSendingFeedback(true);
+    try {
+      await submitFeedback(state.gameId, state.player.id, rating, comment.trim() || undefined);
+      setFeedbackSent(true);
+    } catch {
+      // best-effort — a failed rating shouldn't block the rest of the screen
+    } finally {
+      setSendingFeedback(false);
     }
   }
 
@@ -257,6 +275,71 @@ export function Result() {
               highlightSeatIndexes={reveal.botSeatIndexes}
             />
           </div>
+        </div>
+      )}
+
+      {!feedbackSent ? (
+        <div
+          style={{
+            width: '100%',
+            marginTop: 20,
+            padding: '14px 16px',
+            borderRadius: 16,
+            background: 'var(--panel)',
+            border: '1px solid rgba(255,255,255,.07)'
+          }}
+        >
+          <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
+            RATE THIS GAME
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => setRating(n)}
+                aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                <i
+                  className="hgi-stroke hgi-star"
+                  style={{ fontSize: 22, color: n <= rating ? 'var(--amber)' : 'var(--text-5)' }}
+                />
+              </button>
+            ))}
+          </div>
+          {rating > 0 && (
+            <>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                placeholder="Anything else? (optional)"
+                rows={2}
+                style={{
+                  width: '100%',
+                  resize: 'none',
+                  background: 'var(--log)',
+                  border: '1px solid rgba(255,255,255,.08)',
+                  borderRadius: 12,
+                  padding: '8px 10px',
+                  color: 'var(--text-1)',
+                  fontSize: 13,
+                  fontFamily: 'inherit'
+                }}
+              />
+              <button
+                className="btn-text"
+                style={{ marginTop: 8 }}
+                onClick={sendFeedback}
+                disabled={sendingFeedback}
+              >
+                {sendingFeedback ? 'Sending…' : 'Send feedback'}
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ marginTop: 20, fontSize: 11.5, color: 'var(--text-3)', textAlign: 'center' }}>
+          Thanks for the feedback!
         </div>
       )}
 
