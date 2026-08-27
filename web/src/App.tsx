@@ -127,6 +127,35 @@ function Router() {
     }
   }, [state.phase, location.pathname, navigate]);
 
+  // A Heart/Coin was already spent to enter this room — closing the tab or
+  // hitting back mid-game forfeits the round the same as if the connection
+  // just dropped, so warn before either. Native confirm/beforeunload rather
+  // than a styled modal, matching the alert() Table.tsx already uses for
+  // the equivalent "game cancelled" case.
+  const liveGame = state.phase === 'roster' || state.phase === 'chat' || state.phase === 'guess';
+  useEffect(() => {
+    if (!liveGame) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    // Push a dummy history entry so the first back press is interceptable
+    // instead of immediately navigating away.
+    window.history.pushState(null, '', window.location.href);
+    const onPopState = () => {
+      const leave = window.confirm("Leave the game? You'll lose your spot and this round won't count in your favor.");
+      if (!leave) {
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [liveGame]);
+
   return (
     <Routes>
       <Route path="/" element={loggedIn ? <Navigate to="/home" replace /> : <Landing />} />

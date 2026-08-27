@@ -61,27 +61,9 @@ export function Guess() {
         )}
       </div>
 
-      <div style={{ width: '100%', marginBottom: 20 }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
-          REVIEW CHAT
-        </div>
-        <div
-          style={{
-            background: 'var(--log)',
-            border: '1px solid rgba(255,255,255,.06)',
-            borderRadius: 20,
-            padding: 16,
-            maxHeight: 220,
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12
-          }}
-        >
-          <ChatTranscript messages={state.messages} roster={state.roster} mySeatIndex={state.mySeatIndex} />
-        </div>
-      </div>
-
+      {/* Picking a seat is the one thing this screen exists for — it has to
+          be reachable without scrolling, so it comes before the (variable-
+          height, secondary) chat review rather than after it. */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
         {candidates.map((seat, i) => {
           const selected = state.myGuess === seat.seatIndex;
@@ -134,6 +116,27 @@ export function Guess() {
             </button>
           );
         })}
+      </div>
+
+      <div style={{ width: '100%', marginTop: 20 }}>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
+          REVIEW CHAT
+        </div>
+        <div
+          style={{
+            background: 'var(--log)',
+            border: '1px solid rgba(255,255,255,.06)',
+            borderRadius: 20,
+            padding: 16,
+            maxHeight: 180,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}
+        >
+          <ChatTranscript messages={state.messages} roster={state.roster} mySeatIndex={state.mySeatIndex} />
+        </div>
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

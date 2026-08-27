@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { submitFeedback } from '../api';
@@ -14,15 +14,118 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+const EMOJI_SCALE = ['😞', '😕', '😐', '🙂', '🤩'];
+const FEEDBACK_SHOWN_KEY = 'botcha_feedback_shown';
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const { state } = useGame();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function send() {
+    if (!rating || !state.gameId || !state.player) return;
+    setSending(true);
+    try {
+      await submitFeedback(state.gameId, state.player.id, rating, comment.trim() || undefined);
+      setSent(true);
+      setTimeout(onClose, 900);
+    } catch {
+      // best-effort — a failed rating shouldn't trap the user in the modal
+      onClose();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="modal" role="dialog" aria-label="Rate Botcha">
+      {sent ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 14, color: 'var(--text-2)' }}>
+          Thanks for the feedback!
+        </div>
+      ) : (
+        <>
+          <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 19, textAlign: 'center' }}>
+            Enjoying Botcha so far?
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, margin: '20px 0 6px' }}>
+            {EMOJI_SCALE.map((emoji, i) => {
+              const n = i + 1;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating(n)}
+                  aria-label={`${n} of 5`}
+                  aria-pressed={rating === n}
+                  style={{
+                    background: rating === n ? 'rgba(124,110,246,.18)' : 'none',
+                    border: rating === n ? '1px solid var(--accent)' : '1px solid transparent',
+                    borderRadius: 12,
+                    fontSize: 26,
+                    padding: '6px 9px',
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                    opacity: rating && rating !== n ? 0.45 : 1,
+                    transition: 'opacity .2s ease'
+                  }}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+          {rating > 0 && (
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value.slice(0, 500))}
+              placeholder="Anything else? (optional)"
+              rows={2}
+              style={{
+                width: '100%',
+                resize: 'none',
+                background: 'var(--log)',
+                border: '1px solid rgba(255,255,255,.08)',
+                borderRadius: 12,
+                padding: '8px 10px',
+                color: 'var(--text-1)',
+                fontSize: 13,
+                fontFamily: 'inherit',
+                marginTop: 14
+              }}
+            />
+          )}
+          <button className="btn-primary" style={{ marginTop: 18 }} onClick={send} disabled={!rating || sending}>
+            {sending ? 'Sending…' : 'Send'}
+          </button>
+          <button className="btn-text" style={{ width: '100%' }} onClick={onClose}>
+            Skip
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Result() {
   const navigate = useNavigate();
   const { state, goHome, joinQueue } = useGame();
   const [sharing, setSharing] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [feedbackSent, setFeedbackSent] = useState(false);
-  const [sendingFeedback, setSendingFeedback] = useState(false);
-  const [showReveal, setShowReveal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  // Once ever, right after the 3rd game — a localStorage flag survives a
+  // logout/relogin of the same device, unlike checking history.games alone
+  // (which would fire again for anyone who plays a 4th, 5th... game if the
+  // count check weren't exact — this belt-and-suspenders keeps it a single
+  // ask no matter how state.player gets refreshed).
+  useEffect(() => {
+    if (state.player?.history.games === 3 && !localStorage.getItem(FEEDBACK_SHOWN_KEY)) {
+      localStorage.setItem(FEEDBACK_SHOWN_KEY, '1');
+      setShowFeedback(true);
+    }
+  }, [state.player?.history.games]);
 
   const result = state.result;
   const reveal = state.reveal;
@@ -65,19 +168,6 @@ export function Result() {
       // user cancelled share sheet or export failed — no-op
     } finally {
       setSharing(false);
-    }
-  }
-
-  async function sendFeedback() {
-    if (!rating || !state.gameId || !state.player) return;
-    setSendingFeedback(true);
-    try {
-      await submitFeedback(state.gameId, state.player.id, rating, comment.trim() || undefined);
-      setFeedbackSent(true);
-    } catch {
-      // best-effort — a failed rating shouldn't block the rest of the screen
-    } finally {
-      setSendingFeedback(false);
     }
   }
 
@@ -181,18 +271,6 @@ export function Result() {
         </button>
       </div>
 
-      <button
-        className="btn-text"
-        style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 6 }}
-        onClick={() => setShowReveal((v) => !v)}
-        aria-expanded={showReveal}
-      >
-        {showReveal ? 'Hide full reveal' : 'See who was who'}
-        <i className={`hgi-stroke ${showReveal ? 'hgi-arrow-up-01' : 'hgi-arrow-down-01'}`} style={{ fontSize: 12 }} />
-      </button>
-
-      {showReveal && (
-      <>
       <div
         style={{
           width: '100%',
@@ -297,73 +375,9 @@ export function Result() {
           </div>
         </div>
       )}
-      </>
-      )}
 
-      {!feedbackSent ? (
-        <div
-          style={{
-            width: '100%',
-            marginTop: 20,
-            padding: '14px 16px',
-            borderRadius: 16,
-            background: 'var(--panel)',
-            border: '1px solid rgba(255,255,255,.07)'
-          }}
-        >
-          <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
-            RATE THIS GAME
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setRating(n)}
-                aria-label={`${n} star${n > 1 ? 's' : ''}`}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-              >
-                <i
-                  className="hgi-stroke hgi-star"
-                  style={{ fontSize: 22, color: n <= rating ? 'var(--amber)' : 'var(--text-5)' }}
-                />
-              </button>
-            ))}
-          </div>
-          {rating > 0 && (
-            <>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                placeholder="Anything else? (optional)"
-                rows={2}
-                style={{
-                  width: '100%',
-                  resize: 'none',
-                  background: 'var(--log)',
-                  border: '1px solid rgba(255,255,255,.08)',
-                  borderRadius: 12,
-                  padding: '8px 10px',
-                  color: 'var(--text-1)',
-                  fontSize: 13,
-                  fontFamily: 'inherit'
-                }}
-              />
-              <button
-                className="btn-text"
-                style={{ marginTop: 8 }}
-                onClick={sendFeedback}
-                disabled={sendingFeedback}
-              >
-                {sendingFeedback ? 'Sending…' : 'Send feedback'}
-              </button>
-            </>
-          )}
-        </div>
-      ) : (
-        <div style={{ marginTop: 20, fontSize: 11.5, color: 'var(--text-3)', textAlign: 'center' }}>
-          Thanks for the feedback!
-        </div>
-      )}
+      {showFeedback && <div className="scrim" onClick={() => setShowFeedback(false)} />}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
       <button
         className="btn-text"

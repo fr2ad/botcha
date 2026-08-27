@@ -21,6 +21,20 @@ export function Table() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // 100dvh alone doesn't reliably shrink for the on-screen keyboard on every
+  // mobile browser — visualViewport does, and is the one signal that's
+  // actually accurate everywhere it exists. Falls back to dvh via the
+  // default height below on browsers without it (desktop, old WebViews).
+  const [vh, setVh] = useState<number | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => setVh(vv.height);
+    vv.addEventListener('resize', onResize);
+    onResize();
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     if (state.phase === 'guess') navigate('/guess');
     if (state.phase === 'idle') navigate('/home');
@@ -61,8 +75,10 @@ export function Table() {
         // scrolls internally as messages pile up — otherwise the whole
         // screen grows past the viewport by round 2-3 and the composer
         // (the one thing you need during a 20s timed turn) scrolls out of
-        // view along with it.
-        height: '100dvh',
+        // view along with it. Tracks visualViewport (see above) so the same
+        // thing happens when the on-screen keyboard opens, not just when
+        // the log grows.
+        height: vh != null ? `${vh}px` : '100dvh',
         paddingLeft: 20,
         paddingRight: 20,
         paddingBottom: 'calc(20px + env(safe-area-inset-bottom))'

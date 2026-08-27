@@ -341,9 +341,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [state.phase, state.gameId]);
 
   // A cancelled game refunds a Heart server-side — pull the fresh count
-  // rather than trying to keep a local copy in sync with that logic.
+  // rather than trying to keep a local copy in sync with that logic. A
+  // finished game is the same story: the Heart/Coin entry fee was spent
+  // before the room even started (queue.ts), so nothing in the WS protocol
+  // ever tells the client hearts_remaining changed — 'game.result' only
+  // carries the score/coin deltas. Re-fetch here too, or Home shows a stale
+  // heart count until the next full reload.
   useEffect(() => {
-    if (state.phase !== 'cancelled' || !state.player) return;
+    if ((state.phase !== 'cancelled' && state.phase !== 'result') || !state.player) return;
     fetchPlayer(state.player.id)
       .then(({ player }) => dispatch({ type: 'SET_PLAYER', player }))
       .catch(() => {});

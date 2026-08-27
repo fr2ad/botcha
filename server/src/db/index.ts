@@ -108,6 +108,18 @@ try {
 // above (existing DB), and IF NOT EXISTS makes it safe to run every boot.
 db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_players_invite_code ON players(invite_code)`);
 
+// Backfill for players created before invite_code existed — the ALTER TABLE
+// above only adds the column, it can't retroactively populate it, so any
+// pre-existing account was stuck with invite_code = NULL (shown as the
+// literal string "null" in a share link/profile card). One-by-one UPDATE
+// because each row needs its own unique code, not a single bulk value.
+{
+  const withoutCode = db.prepare(`SELECT id FROM players WHERE invite_code IS NULL`).all() as Array<{ id: string }>;
+  for (const { id } of withoutCode) {
+    db.prepare(`UPDATE players SET invite_code = ? WHERE id = ?`).run(nanoid(8), id);
+  }
+}
+
 export type PlayerRow = {
   id: string;
   google_id: string;
