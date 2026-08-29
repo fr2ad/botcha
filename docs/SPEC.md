@@ -86,8 +86,10 @@ choices, which would destroy the game.
 - **3 Table Rounds.** Turn order randomized at game start, fixed thereafter, Bot
   Seat positions random.
 - Each Turn: a window to send **one message, max 200 characters**. Sending ends
-  the Turn early; the window elapsing skips it. **[built]** 20 s, not the 15 s
-  originally specified.
+  the Turn early; the window elapsing skips it. **[built]** 30 s, not the 15 s
+  originally specified — bumped from an initial 20 s once real play showed
+  reading the growing log plus typing on a phone keyboard was tighter than
+  intended for a non-touch-typist.
 - Skipping **two** Turns applies the public **Silent Player** badge. Silent Seats
   may still Guess.
 - No mandatory questions between Players; chat is open talk in turns.
@@ -207,7 +209,7 @@ Authoritative values live in `server/src/config.ts`.
 |---|---|
 | seats / bots per room | 4 / 1 |
 | table rounds | 3 |
-| turn window | 20 s |
+| turn window | 30 s |
 | max message length | 200 chars |
 | guess timer | 20 s |
 | silent badge after | 2 skipped Turns |
@@ -256,7 +258,7 @@ the authority.
 | Area | Spec | Built |
 |---|---|---|
 | Login | Google OAuth | Mocked — nickname/avatar, no verification |
-| Turn window | 15 s | 20 s |
+| Turn window | 15 s | 30 s |
 | Avatars | ~12, from a list | 15, drawn client-side as SVG |
 | Bot on API failure | Retry once, then skip | No retry; canned fallback reply |
 | Bot delay | "Randomized human-like" | Think time + 40 ms/char typing, minus generation time |

@@ -6,7 +6,7 @@ import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { Wordmark } from '../components/Wordmark';
 
-const TURN_WINDOW_MS = 20_000;
+const TURN_WINDOW_MS = 30_000;
 const MAX_LEN = 200;
 const TOTAL_ROUNDS = 3;
 
@@ -74,7 +74,7 @@ export function Table() {
         // .screen normally sets) so the table log is the only thing that
         // scrolls internally as messages pile up — otherwise the whole
         // screen grows past the viewport by round 2-3 and the composer
-        // (the one thing you need during a 20s timed turn) scrolls out of
+        // (the one thing you need during a 30s timed turn) scrolls out of
         // view along with it. Tracks visualViewport (see above) so the same
         // thing happens when the on-screen keyboard opens, not just when
         // the log grows.

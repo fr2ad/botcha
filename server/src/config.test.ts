@@ -38,7 +38,7 @@ for (let i = 0; i < 500; i++) {
       [longest, 0],
       [longest, 9_000],
       ['ok', 0],
-      ['ok', 19_900] // model came back with almost no window left
+      ['ok', CONFIG.turnWindowMs - 100] // model came back with almost no window left
     ] as const) {
       const d = botDelayMs(text, elapsed, deadline, now);
       assert.ok(d >= 0, `never negative: ${d}`);

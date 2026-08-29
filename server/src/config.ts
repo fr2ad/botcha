@@ -9,7 +9,7 @@ export const CONFIG = {
   // of the table fills with Bots. Keeps the queue from ever truly blocking —
   // worst case, a Player alone gets a full 3-Bot table after this wait.
   queueFillTimeoutMs: 12_000,
-  turnWindowMs: 20_000,
+  turnWindowMs: 30_000,
   maxMessageLength: 200,
   guessWindowMs: 20_000,
   dailyHearts: 5,

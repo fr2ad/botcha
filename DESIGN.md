@@ -177,7 +177,7 @@ The prototype was drawn against a snapshot of the app; where it disagrees with t
 - **No typing indicator.** Frame 1i shows "Red Owl is typing…". The server emits no typing event and adding one would leak turn-timing signal about the bot. Dropped.
 - **No rank delta on Result.** Frame 1l shows `#42 → #37 ▲`. The server sends only the post-game rank (`game.result.leaderboardRank`), so the arrow would be fabricated. Shows the absolute rank only.
 - **Google button is still mocked.** Frame 1c's CTA routes to onboarding; real OAuth is Phase 2 (`docs/SPEC.md` §9).
-- **Timings come from `server/src/config.ts`**, not the mockup's captions — the turn window is 20s there, and the client mirrors the server rather than the design copy.
+- **Timings come from `server/src/config.ts`**, not the mockup's captions — the turn window is 30s there, and the client mirrors the server rather than the design copy.
 
 ## 6. Adding to this system
 

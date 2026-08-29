@@ -447,7 +447,7 @@ const HOW_STEPS = [
   {
     icon: 'hgi-message-01',
     title: 'Chat 3 rounds',
-    body: 'Turn-based — 20 seconds per turn. Probe, bluff, watch for tells.'
+    body: 'Turn-based — 30 seconds per turn. Probe, bluff, watch for tells.'
   },
   {
     icon: 'hgi-search-01',
@@ -489,7 +489,7 @@ function HowToPlay({ onClose }: { onClose: () => void }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 22, flexWrap: 'wrap' }}>
-        {['3 rounds', '20s turns', '~3 min games'].map((f) => (
+        {['3 rounds', '30s turns', '~4 min games'].map((f) => (
           <span
             key={f}
             style={{
