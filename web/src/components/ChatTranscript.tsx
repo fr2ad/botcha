@@ -1,18 +1,33 @@
 import { SeatAvatar } from './SeatAvatar';
 import type { ChatMessage, RosterEntry } from '../types';
 
-function mentionToken(codeName: string) {
-  return '@' + codeName.replace(/\s+/g, '');
+// Humans mention through the avatar picker (Table.tsx), which always inserts
+// the space-stripped "@CrimsonOwl" form. The bot only ever sees code names
+// WITH the space in its prompt (room.ts feeds it "Crimson Owl: ..." chat
+// history) and free-types its reply, so it naturally produces "@Crimson Owl"
+// just as often — matching only the stripped form left a real bot message
+// unhighlighted, a tell a guesser could use (SPEC §7). \s* between each word
+// accepts either form (and any amount of whitespace) instead of requiring
+// the bot to imitate the picker's exact string.
+function mentionPattern(codeName: string) {
+  const words = codeName
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return '@' + words.join('\\s*');
 }
 
 // Mentioning a seat is just a text convenience for readability — it does not
 // change turn order or obligate that seat to reply (chat stays turn-based, see ADR-0001).
 export function renderWithMentions(text: string, roster: { codeName: string }[]) {
-  const tokens = roster.map((s) => mentionToken(s.codeName)).filter(Boolean);
-  if (tokens.length === 0) return text;
-  const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const patterns = roster.map((s) => mentionPattern(s.codeName)).filter(Boolean);
+  if (patterns.length === 0) return text;
+  // One capturing group wrapping the whole alternation — split() then puts
+  // every matched mention at an odd index, so no separate re-match/compare
+  // step is needed to tell a mention apart from plain text.
+  const pattern = new RegExp(`(${patterns.join('|')})`, 'gi');
   return text.split(pattern).map((part, i) =>
-    tokens.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
+    i % 2 === 1 ? (
       <span key={i} style={{ color: 'var(--accent-2)', fontWeight: 700 }}>
         {part}
       </span>
