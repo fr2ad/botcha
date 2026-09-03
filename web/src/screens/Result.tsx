@@ -217,7 +217,8 @@ export function Result() {
           width: 420,
           height: 420,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'}, transparent 65%)`
+          background: `radial-gradient(circle, ${correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'}, transparent 65%)`,
+          animation: correct ? 'glowBloom .6s cubic-bezier(0.16,1,0.3,1) both' : undefined
         }}
       />
       {correct && <Confetti />}
@@ -230,7 +231,8 @@ export function Result() {
           fontSize: 26,
           textAlign: 'center',
           color: correct ? 'var(--green)' : 'var(--pink)',
-          textShadow: correct ? '0 0 24px rgba(56,217,122,.4)' : undefined
+          textShadow: correct ? '0 0 24px rgba(56,217,122,.4)' : undefined,
+          animation: correct ? 'winPop .6s cubic-bezier(0.16,1,0.3,1) both' : undefined
         }}
       >
         {outcomeLabel}
@@ -248,6 +250,7 @@ export function Result() {
 
       <div className={correct ? undefined : 'shake'} style={{ display: 'flex', gap: 10, margin: '20px 0 6px' }}>
         <span
+          className={correct ? 'pop' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -258,13 +261,15 @@ export function Result() {
             fontSize: 13,
             fontWeight: 800,
             borderRadius: 999,
-            color: correct ? 'var(--green)' : 'var(--pink)'
+            color: correct ? 'var(--green)' : 'var(--pink)',
+            ['--i' as string]: 4
           }}
         >
           {result.scoreDelta >= 0 ? '+' : ''}
           {result.scoreDelta} score
         </span>
         <span
+          className={correct ? 'pop' : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -275,7 +280,8 @@ export function Result() {
             fontSize: 13,
             fontWeight: 800,
             borderRadius: 999,
-            color: result.coinDelta > 0 ? 'var(--amber)' : 'var(--text-3)'
+            color: result.coinDelta > 0 ? 'var(--amber)' : 'var(--text-3)',
+            ['--i' as string]: 5
           }}
         >
           <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 14 }} />+{result.coinDelta} coins

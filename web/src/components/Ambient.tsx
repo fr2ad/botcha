@@ -32,14 +32,19 @@ export function Ambient({ washTop = -120 }: { washTop?: number }) {
   );
 }
 
-const CONFETTI = [
-  { left: '12%', color: 'var(--accent)', dur: 4, delay: 0 },
-  { left: '26%', color: 'var(--green)', dur: 5, delay: 0.6 },
-  { left: '44%', color: 'var(--amber)', dur: 4.4, delay: 1.2 },
-  { left: '61%', color: 'var(--pink)', dur: 5.2, delay: 0.3 },
-  { left: '76%', color: 'var(--blue)', dur: 4.7, delay: 1.6 },
-  { left: '89%', color: 'var(--accent-2)', dur: 5.5, delay: 0.9 }
-];
+const CONFETTI_COLORS = ['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--pink)', 'var(--blue)', 'var(--accent-2)'];
+
+// A real burst, not a drizzle: dense spread, launched together within a third
+// of a second, gone in under 2.5s — a slow six-piece infinite loop read as
+// ambient rain rather than a win. `ease-in` gives the fall itself a gravity
+// feel (accelerating) instead of the constant speed `linear` gave it.
+const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
+  left: `${4 + i * 4.3}%`,
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  size: 6 + (i % 3) * 2,
+  dur: 1.6 + (i % 5) * 0.18,
+  delay: (i % 7) * 0.05
+}));
 
 export function Confetti() {
   return (
@@ -48,7 +53,13 @@ export function Confetti() {
         <span
           key={i}
           className="confetti"
-          style={{ left: c.left, background: c.color, animation: `fall ${c.dur}s linear ${c.delay}s infinite` }}
+          style={{
+            left: c.left,
+            width: c.size,
+            height: c.size * 1.6,
+            background: c.color,
+            animation: `fall ${c.dur}s cubic-bezier(0.55,0.06,0.68,0.19) ${c.delay}s both`
+          }}
         />
       ))}
     </div>
