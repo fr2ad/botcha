@@ -15,6 +15,10 @@ export type Seat = {
   silentBadge: boolean;
   guessSeatIndex: number | null;
   connected: boolean;
+  // Set only by an explicit "leave game" (as opposed to a plain disconnect,
+  // which leaves this false so a reload/network-blip reconnect still resyncs
+  // in) — findActiveSeat skips a left seat so leaving actually sticks.
+  left: boolean;
 };
 
 export type RoomPhase = 'roster' | 'chat' | 'guess' | 'reveal' | 'result' | 'cancelled';

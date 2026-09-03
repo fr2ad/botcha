@@ -70,7 +70,8 @@ export class Room {
           skippedTurns: 0,
           silentBadge: false,
           guessSeatIndex: null,
-          connected: true
+          connected: true,
+          left: false
         });
       } else {
         const playerId = humanOrder.pop()!;
@@ -87,7 +88,8 @@ export class Room {
           skippedTurns: 0,
           silentBadge: false,
           guessSeatIndex: null,
-          connected: true
+          connected: true,
+          left: false
         });
       }
     }
@@ -154,6 +156,17 @@ export class Room {
     if (this.phase !== 'result' && this.phase !== 'cancelled' && this.connectedHumanCount() < CONFIG.minHumansToContinue) {
       this.cancelForDisconnect();
     }
+  }
+
+  // An explicit "leave game" (as opposed to a network drop): marks the seat
+  // so a later reconnect never resyncs back into this room (findActiveSeat
+  // skips it), then folds into the same disconnect handling for the
+  // room-cancellation check — losing this seat for good is exactly as
+  // liveness-affecting as losing the connection.
+  handleLeave(playerId: string) {
+    const seat = this.seats.find((s) => s.playerId === playerId);
+    if (seat) seat.left = true;
+    this.handleDisconnect(playerId);
   }
 
   private cancelForDisconnect() {

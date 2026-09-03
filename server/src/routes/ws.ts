@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { connections, send } from '../game/connections.js';
-import { broadcastQueue, findActiveSeat, joinQueue, leaveQueue, onDisconnect, activeRooms } from '../game/queue.js';
+import { broadcastQueue, findActiveSeat, joinQueue, leaveGame, leaveQueue, onDisconnect, activeRooms } from '../game/queue.js';
 import { getPlayer } from '../db/index.js';
 
 export function registerWsRoute(app: FastifyInstance) {
@@ -48,6 +48,10 @@ export function registerWsRoute(app: FastifyInstance) {
           break;
         case 'queue.leave':
           leaveQueue(playerId);
+          break;
+        case 'game.leave':
+          leaveGame(playerId);
+          conn.gameId = null;
           break;
         case 'turn.message':
           conn.pendingTurnResolve?.(typeof msg.text === 'string' ? msg.text : null);

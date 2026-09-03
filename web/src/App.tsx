@@ -115,7 +115,7 @@ const PHASE_ROUTE: Partial<Record<GamePhase, string>> = {
 };
 
 function Router() {
-  const { state } = useGame();
+  const { state, leaveGame } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
   const loggedIn = !!state.player;
@@ -145,7 +145,15 @@ function Router() {
     window.history.pushState(null, '', window.location.href);
     const onPopState = () => {
       const leave = window.confirm("Leave the game? You'll lose your spot and this round won't count in your favor.");
-      if (!leave) {
+      if (leave) {
+        // Without this, state.phase is untouched by the URL change alone —
+        // the room keeps running server-side and every phase-guard (this
+        // effect included, via PHASE_ROUTE above) would just navigate
+        // straight back into it, making "Leave" look like it silently did
+        // nothing.
+        leaveGame();
+        navigate('/home', { replace: true });
+      } else {
         window.history.pushState(null, '', window.location.href);
       }
     };
@@ -154,7 +162,7 @@ function Router() {
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('popstate', onPopState);
     };
-  }, [liveGame]);
+  }, [liveGame, leaveGame, navigate]);
 
   return (
     <Routes>

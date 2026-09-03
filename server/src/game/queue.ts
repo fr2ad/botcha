@@ -44,7 +44,7 @@ export function leaveQueue(playerId: string) {
 export function findActiveSeat(playerId: string) {
   for (const room of activeRooms.values()) {
     if (room.phase === 'result' || room.phase === 'cancelled') continue;
-    const seat = room.seats.find((s) => s.kind === 'human' && s.playerId === playerId);
+    const seat = room.seats.find((s) => s.kind === 'human' && s.playerId === playerId && !s.left);
     if (seat) return { room, seat };
   }
   return null;
@@ -54,6 +54,15 @@ export function onDisconnect(playerId: string) {
   leaveQueue(playerId);
   for (const room of activeRooms.values()) {
     room.handleDisconnect(playerId);
+  }
+}
+
+// A player-initiated leave, unlike onDisconnect — permanently gives up the
+// seat (findActiveSeat above will skip it) rather than leaving it open for
+// a reconnect to resync back into.
+export function leaveGame(playerId: string) {
+  for (const room of activeRooms.values()) {
+    room.handleLeave(playerId);
   }
 }
 

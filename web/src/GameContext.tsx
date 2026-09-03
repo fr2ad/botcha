@@ -169,6 +169,7 @@ type Ctx = {
   sendTurnMessage: (text: string) => void;
   submitGuess: (seatIndex: number) => void;
   goHome: () => void;
+  leaveGame: () => void;
   changeAvatar: (avatar: string) => Promise<void>;
   logout: () => void;
 };
@@ -315,6 +316,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESET_TO_HOME' });
   }, []);
 
+  // Player-initiated exit mid-game (the "Leave the game?" confirm in
+  // App.tsx), as opposed to goHome (only ever called post-result). Tells the
+  // server first, while the old socket is still open, so the seat is marked
+  // left before we reconnect — otherwise a fresh connection's own
+  // findActiveSeat check could win the race and resync us right back in.
+  // Closing and reopening (rather than reusing the socket) also flushes any
+  // in-flight frames from the abandoned room's remaining lifecycle.
+  const leaveGame = useCallback(() => {
+    if (!state.player) return;
+    send({ type: 'game.leave' });
+    intentionalCloseRef.current = true;
+    wsRef.current?.close();
+    wsRef.current = null;
+    dispatch({ type: 'RESET_TO_HOME' });
+    connect(state.player.id);
+  }, [send, connect, state.player]);
+
   const changeAvatar = useCallback(async (avatar: string) => {
     const id = localStorage.getItem(STORAGE_KEY);
     if (!id) return;
@@ -392,6 +410,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       sendTurnMessage,
       submitGuess,
       goHome,
+      leaveGame,
       changeAvatar,
       logout
     }),
@@ -406,6 +425,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       sendTurnMessage,
       submitGuess,
       goHome,
+      leaveGame,
       changeAvatar,
       logout
     ]
