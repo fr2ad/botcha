@@ -405,6 +405,9 @@ function Profile({ onClose }: { onClose: () => void }) {
               Terms
             </Link>
           </div>
+          <div style={{ marginTop: 4, textAlign: 'center', fontSize: 9.5, color: 'var(--text-5)' }}>
+            v{__APP_VERSION__}
+          </div>
           <button className="btn-text" style={{ width: '100%' }} onClick={onClose}>
             Close
           </button>
