@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { submitFeedback } from '../api';
@@ -130,6 +130,31 @@ export function Result() {
 
   const result = state.result;
   const reveal = state.reveal;
+
+  // Pre-rendered as soon as the reveal is in, not on tap: navigator.share()
+  // needs a fresh user gesture, and the canvas draw in renderShareCard is
+  // slow enough on iOS Safari to blow past that gesture's window — the share
+  // sheet then silently fails to open and a repeat tap looks like nothing
+  // happened. Building the card ahead of time means share() just awaits an
+  // already-settled promise, so the sheet opens inside the tap that asked for it.
+  const cardBlobRef = useRef<Promise<Blob> | null>(null);
+  useEffect(() => {
+    if (!result || !reveal || !state.player || cardBlobRef.current) return;
+    const inviteCode = state.player.invite_code;
+    cardBlobRef.current = renderShareCard({
+      outcome: result.outcome,
+      scoreDelta: result.scoreDelta,
+      coinDelta: result.coinDelta,
+      rank: result.leaderboardRank,
+      roster: state.roster,
+      messages: state.messages,
+      botSeatIndexes: reveal.botSeatIndexes,
+      mySeatIndex: state.mySeatIndex,
+      inviteUrl: `${window.location.origin}/#/?ref=${inviteCode}`,
+      inviteCode
+    });
+  }, [result, reveal, state.player, state.roster, state.messages, state.mySeatIndex]);
+
   if (!result || !reveal) return <div className="screen" />;
 
   const correct = result.outcome === 'correct';
@@ -150,18 +175,19 @@ export function Result() {
     try {
       const inviteCode = state.player.invite_code;
       const inviteUrl = `${window.location.origin}/#/?ref=${inviteCode}`;
-      const blob = await renderShareCard({
-        outcome: result.outcome,
-        scoreDelta: result.scoreDelta,
-        coinDelta: result.coinDelta,
-        rank: result.leaderboardRank,
-        roster: state.roster,
-        messages: state.messages,
-        botSeatIndexes: reveal.botSeatIndexes,
-        mySeatIndex: state.mySeatIndex,
-        inviteUrl,
-        inviteCode
-      });
+      const blob = await (cardBlobRef.current ??
+        renderShareCard({
+          outcome: result.outcome,
+          scoreDelta: result.scoreDelta,
+          coinDelta: result.coinDelta,
+          rank: result.leaderboardRank,
+          roster: state.roster,
+          messages: state.messages,
+          botSeatIndexes: reveal.botSeatIndexes,
+          mySeatIndex: state.mySeatIndex,
+          inviteUrl,
+          inviteCode
+        }));
       const botLabel = botSeats.length > 1 ? `${botSeats.length} of them were bots` : `${botNames} was the bot`;
       const shareText = `${outcomeLabel} ${botLabel}. Think you can spot one? Play Botcha, use my code ${inviteCode} for bonus coins:`;
       const file = new File([blob], 'botcha-result.png', { type: 'image/png' });
