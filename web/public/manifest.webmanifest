@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Botcha — 3 humans. 1 bot. Find it.",
+  "name": "Botcha — 1-3 bots at the table. Find them.",
   "short_name": "Botcha",
-  "description": "Multiplayer reverse-Turing-test game. Chat anonymously, then guess which seat is the bot.",
+  "description": "Multiplayer reverse-Turing-test game. Chat anonymously, then guess which seats are AI.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

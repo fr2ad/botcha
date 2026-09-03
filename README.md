@@ -1,24 +1,27 @@
 # Botcha
 
-Multiplayer reverse-Turing-test game. Three humans and one AI bot chat
-anonymously around a table in turn-based rounds; afterwards everyone privately
-guesses which seat was the bot.
+Multiplayer reverse-Turing-test game. Four seats chat anonymously around a
+table in turn-based rounds — 1 to 3 of them are AI bots, and you're never told
+how many; afterwards everyone privately guesses which seats were bots.
 
-You are not trying to prove you are human. You are hunting the one who isn't.
+You are not trying to prove you are human. You are hunting the ones who aren't.
 
 Full specification, glossary, and design decisions: [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Status
 
-MVP, playable end to end: matchmaking queue, turn-based chat, Silent Player
-badges, private guess phase, reveal, scoring and coin economy, daily hearts,
-SQLite leaderboard and play history, prompt-injection-resistant bot personas,
-client-side PNG share card, installable as a home-screen app.
+MVP, playable end to end: matchmaking queue (bot-fills a table in 12s, so it's
+playable solo), turn-based chat, Silent Player badges, private guess phase,
+reveal, scoring and coin economy, daily hearts, SQLite leaderboard and play
+history, prompt-injection-resistant bot personas, client-side PNG share card,
+installable as a home-screen app.
 
-**Google login is mocked** — pick a nickname and avatar and you're in. Anyone can
-mint an account, so treat the leaderboard as decorative and don't run this as-is
-anywhere that matters. Real OAuth, rate limiting, and a payment gateway are the
-named gaps; see [`docs/SPEC.md` §10](docs/SPEC.md#10-spec-vs-built).
+**Google Sign-In is real** (ID-token verified server-side) once
+`GOOGLE_CLIENT_ID` is configured; a mock nickname/avatar login stays available
+alongside it for local dev and the smoke test — see
+[`docs/SPEC.md` §12](docs/SPEC.md#12-open-assumptions). HTTP routes are
+rate-limited per IP, tighter still on signup. A payment gateway is the
+remaining named gap; see [`docs/SPEC.md` §10](docs/SPEC.md#10-spec-vs-built).
 
 ## Structure
 
@@ -48,9 +51,11 @@ cd server && npm install && npm run dev
 cd web && npm install && npm run dev
 ```
 
-A room needs **3 humans + 1 bot** to start. Each browser tab is tracked by a
-`botcha_player_id` in `localStorage`, so separate or incognito windows work as
-separate players — open three, or bring two friends.
+A room seats 4: as many real players as are waiting (up to 3), bots filling
+whatever's left after a 12-second wait — so one tab alone still gets a full
+game. Each browser tab is tracked by a `botcha_player_id` in `localStorage`,
+so separate or incognito windows work as separate players if you want to play
+with real seatmates instead.
 
 Or skip the tabs entirely and let the smoke test play a whole game for you:
 
@@ -84,13 +89,14 @@ script — follow that shape if new logic needs a check.
 ## How a game runs
 
 1. Players join a global queue. Nothing is charged for waiting.
-2. Three humans matched → each is charged a heart, a room spins up, one seat is
-   secretly the bot.
-3. Three table rounds. Each seat gets a 20-second turn to send one message, max
-   200 characters. Skipping two turns earns a public Silent Player badge.
-4. A 20-second private guess phase. The bot fakes a vote on a random delay so its
-   status looks identical to everyone else's.
-5. Reveal, then scoring: +20 and 5 coins for catching the bot, −10 for missing.
+2. A room seats 4 — as many real players as are waiting fill first, bots take
+   whatever's left after a 12-second wait, so 1 to 3 seats end up secretly
+   bots. Everyone seated is charged a heart, a room spins up.
+3. Three table rounds. Each seat gets a 30-second turn to send one message,
+   max 200 characters. Skipping two turns earns a public Silent Player badge.
+4. A 20-second private guess phase. Each bot fakes a vote on its own random
+   delay so its status looks identical to everyone else's.
+5. Reveal, then scoring: +20 and 5 coins for catching a bot, −10 for missing.
 
 Room state is entirely in memory and a room lives two to four minutes. Only
 finished games, messages, and economy reach SQLite, so a crash loses in-flight
@@ -129,10 +135,17 @@ overwrites your key or your data.
   still marked experimental; revisit if that becomes a problem.
 - **The bot-test page** (`/#/bot-test`) exercises the real bot reply path without
   matchmaking. It is off unless `BOT_TEST=1`, because the endpoint takes
-  caller-supplied text to a paid model with no auth and no rate limit — anywhere
-  it is reachable, it is a free LLM proxy billed to your key.
-- **Chat transcripts are never public.** Messages are stored for moderation and
-  debugging only, and the share card carries no transcript.
+  caller-supplied text to a paid model with no auth — anywhere it is reachable,
+  it is a free LLM proxy billed to your key. A tight per-route rate limit is
+  defense in depth; `BOT_TEST` staying unset in production is the real guard.
+- **The share card carries the real transcript.** It renders your table's
+  actual chat, client-side, as a deliberate product call — a bare score isn't
+  shareable, a puzzle other people can read and guess at is. It does mean
+  other players' messages can end up in an image posted anywhere; Terms of
+  Service covers this and a line sits next to the in-app Share button.
+- **HTTP is rate-limited per IP** (`@fastify/rate-limit`), tighter still on the
+  two account-creation routes. WebSocket frames aren't — see
+  [`docs/SPEC.md` §8](docs/SPEC.md#8-architecture) for the remaining gap.
 
 ## License
 

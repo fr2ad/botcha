@@ -15,12 +15,18 @@ import {
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
+// Both routes mint a fresh account (and, with an invite code, pay out
+// Coins) — the one thing worth throttling harder than the server-wide
+// default, since an account is free and farmable otherwise.
+const SIGNUP_RATE_LIMIT = { rateLimit: { max: 8, timeWindow: '10 minutes' } };
+
 export function registerAuthRoutes(app: FastifyInstance) {
   // Dev/mock login: no real OAuth, the client sends a nickname + avatar it
   // picked. Left in place even once Google login is configured — useful for
   // local dev without a Google Cloud project, and for the smoke test.
   app.post<{ Body: { nickname: string; avatar: string; inviteCode?: string } }>(
     '/api/auth/mock-login',
+    { config: SIGNUP_RATE_LIMIT },
     async (req, reply) => {
       const { nickname, avatar, inviteCode } = req.body ?? {};
       if (!nickname || !avatar) {
@@ -69,6 +75,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
   // mock-login, but keyed to the verified googleId instead of a fake one.
   app.post<{ Body: { googleId: string; nickname: string; avatar: string; inviteCode?: string } }>(
     '/api/auth/google-signup',
+    { config: SIGNUP_RATE_LIMIT },
     async (req, reply) => {
       const { googleId, nickname, avatar, inviteCode } = req.body ?? {};
       if (!googleId || !nickname || !avatar) {

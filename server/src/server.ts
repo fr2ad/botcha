@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import { PORT } from './config.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -13,6 +14,10 @@ import './db/index.js'; // ensure schema is created on boot
 const app = Fastify({ logger: true });
 
 await app.register(cors, { origin: true });
+// Blunt default for every HTTP route (SPEC §10 flagged this as missing —
+// scraping/probing was free). Routes that mint accounts set a tighter
+// per-route override below; nothing else needed one.
+await app.register(rateLimit, { global: true, max: 120, timeWindow: '1 minute' });
 await app.register(websocket);
 
 registerAuthRoutes(app);

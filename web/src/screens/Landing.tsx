@@ -1,15 +1,34 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { googleLogin } from '../api';
 import { Ambient } from '../components/Ambient';
+import { ChatTranscript } from '../components/ChatTranscript';
 import { Wordmark } from '../components/Wordmark';
 import { useGame } from '../GameContext';
+import { trackEvent } from '../firebase';
+import type { ChatMessage, RosterEntry } from '../types';
 
 const STEPS = [
   { icon: 'hgi-user-group', label: 'join a table' },
   { icon: 'hgi-message-01', label: 'chat 3 rounds' },
   { icon: 'hgi-search-01', label: 'guess a bot' }
 ];
+
+// A real transcript shape, hand-written rather than pulled from a live game —
+// cold traffic never sees gameplay otherwise, since everything past this
+// screen sits behind a login. Revealed on a delay so the preview plays out
+// the way an actual round does: read first, find out after.
+const SAMPLE_ROSTER: RosterEntry[] = [
+  { seatIndex: 0, codeName: 'Crimson Owl', color: 'oklch(70% 0.16 25)', nickname: '', avatar: '' },
+  { seatIndex: 1, codeName: 'Azure Hawk', color: 'oklch(70% 0.16 225)', nickname: '', avatar: '' },
+  { seatIndex: 2, codeName: 'Rose Quail', color: 'oklch(70% 0.16 350)', nickname: '', avatar: '' }
+];
+const SAMPLE_MESSAGES: ChatMessage[] = [
+  { seatIndex: 0, round: 1, text: 'ok everyone be honest, who skipped leg day' },
+  { seatIndex: 1, round: 1, text: 'lmaooo not me. @CrimsonOwl you sound nervous already' },
+  { seatIndex: 2, round: 1, text: 'i work out every single day without fail, it is important for maintaining physical health' }
+];
+const SAMPLE_BOT_SEAT = [2];
 
 // Unset -> the button below just goes to the mocked nickname/avatar flow,
 // exactly like before. Set -> it's replaced with Google's own rendered
@@ -33,6 +52,17 @@ export function Landing() {
   const navigate = useNavigate();
   const { loginWithExistingPlayer } = useGame();
   const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    trackEvent('landing_view');
+  }, []);
+
+  // Loops so a visitor who lingers still sees the reveal, not just the setup.
+  useEffect(() => {
+    const t = setInterval(() => setRevealed((r) => !r), 3200);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
@@ -82,6 +112,44 @@ export function Landing() {
         1-3 bots at the table.
         <br />
         <span style={{ color: 'var(--accent-2)', fontWeight: 800 }}>Find them.</span>
+      </div>
+
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          marginTop: 26,
+          textAlign: 'left',
+          background: 'var(--panel)',
+          border: '1px solid rgba(255,255,255,.08)',
+          borderRadius: 16,
+          padding: '16px 16px 14px'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <ChatTranscript
+            messages={SAMPLE_MESSAGES}
+            roster={SAMPLE_ROSTER}
+            mySeatIndex={null}
+            highlightSeatIndexes={revealed ? SAMPLE_BOT_SEAT : []}
+          />
+        </div>
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 10,
+            borderTop: '1px solid rgba(255,255,255,.06)',
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: revealed ? 'var(--pink)' : 'var(--text-5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+        >
+          <i className={`hgi-stroke ${revealed ? 'hgi-bot' : 'hgi-search-01'}`} style={{ fontSize: 12 }} />
+          {revealed ? 'Rose Quail was the bot.' : 'One of these three is a bot.'}
+        </div>
       </div>
 
       {GOOGLE_CLIENT_ID ? (

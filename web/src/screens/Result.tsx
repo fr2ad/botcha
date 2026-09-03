@@ -8,6 +8,7 @@ import { Orb } from '../components/Orb';
 import { SeatAvatar } from '../components/SeatAvatar';
 import { renderShareCard } from '../shareCard';
 import { shareOrCopy } from '../share';
+import { trackEvent } from '../firebase';
 
 function joinNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? '';
@@ -144,6 +145,7 @@ export function Result() {
 
   async function share() {
     if (!result || !reveal || !state.player) return;
+    trackEvent('share_tap', { source: 'result' });
     setSharing(true);
     try {
       const inviteCode = state.player.invite_code;
@@ -269,6 +271,10 @@ export function Result() {
         <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
           {correct ? 'Play again' : 'Run it back'}
         </button>
+      </div>
+
+      <div style={{ fontSize: 10, color: 'var(--text-5)', marginTop: 8, textAlign: 'center' }}>
+        The share card includes this table's chat — see Terms.
       </div>
 
       <div

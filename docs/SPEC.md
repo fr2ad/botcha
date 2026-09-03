@@ -54,10 +54,13 @@ choices, which would destroy the game.
 
 ## 3. Accounts and identity
 
-- **Login: Google OAuth only** by design. **[built]** OAuth is mocked — a
-  nickname and avatar create a player, no verification. Every route downstream
-  handles only an opaque `playerId`, so real OAuth can be swapped in without
-  touching game logic.
+- **Login: Google OAuth only** by design. **[built]** Real Google Sign-In is
+  live — an ID token from Google Identity Services is verified server-side
+  against Google's signing keys (`routes/auth.ts`), gated on `GOOGLE_CLIENT_ID`
+  being configured. A mock login (nickname/avatar, no verification) stays
+  available even once that's set, for local dev and the smoke test — see
+  [§12.5](#12-open-assumptions). Every route downstream handles only an opaque
+  `playerId`, unaffected by which path created it.
 - On first login the Player picks a Nickname and an Avatar.
 - Signup grants a one-time **50 Coins**.
 - **[built]** 15 avatars, drawn client-side as SVG rather than image files.
@@ -175,9 +178,15 @@ the two halves; they agree on WebSocket message shapes by convention.
   **in-memory only** — a Room lives ~2–4 minutes, so a crash loses only in-flight
   games, never history or economy. **[built]** Node's built-in `node:sqlite`,
   chosen over `better-sqlite3` to avoid a native build step on a cheap VPS.
-- External services: OpenRouter. (Google OAuth once real login lands.)
-- **[gap]** The spec calls for per-IP and per-account rate limiting on auth,
-  queue-join, and message endpoints. **Not implemented.**
+- External services: OpenRouter, Google OAuth.
+- **[built]** Rate limiting: `@fastify/rate-limit` gates every HTTP route
+  (120 req/min/IP default), with a tighter override (8 per 10 min/IP) on the
+  two account-creation routes (`mock-login`, `google-signup`) — those mint a
+  free account and, with an invite code, pay out Coins, so they're the
+  cheapest thing to abuse. **[gap]** WebSocket frames (`queue.join`,
+  `turn.message`) are still unlimited; `queue.join` is naturally idempotent
+  (a no-op if already queued) so the exposure there is small, but a
+  determined client could still flood `turn.message` from an owned seat.
 
 ### 8.1 Data model
 
@@ -257,13 +266,13 @@ the authority.
 
 | Area | Spec | Built |
 |---|---|---|
-| Login | Google OAuth | Mocked — nickname/avatar, no verification |
+| Login | Google OAuth | Real, ID-token-verified — plus a mock nickname/avatar path kept live for dev and the smoke test |
 | Turn window | 15 s | 30 s |
 | Avatars | ~12, from a list | 15, drawn client-side as SVG |
 | Bot on API failure | Retry once, then skip | No retry; canned fallback reply |
 | Bot delay | "Randomized human-like" | Think time + 40 ms/char typing, minus generation time |
 | Reverse proxy | Caddy, automatic HTTPS | Provider HAProxy terminates TLS, nginx serves static |
-| Rate limiting | Per-IP and per-account | **Not implemented** |
+| Rate limiting | Per-IP and per-account | Per-IP via `@fastify/rate-limit`, HTTP routes only — WebSocket frames still unlimited |
 | Reveal → result | Implied immediate | 6 s pause so the unmasking is readable |
 | Bot count | Fixed at 1, always known | Variable 1–3, disclosed only as a range ("1–3 of your opponents may be bots"); Scoring stays flat regardless of count — no separate multiplier tier for a table with more Bots |
 
@@ -289,3 +298,8 @@ a redesign.
 4. The 12 s queue fill timeout (`CONFIG.queueFillTimeoutMs`) before empty
    Seats get Bot-filled — picked to feel responsive, not measured against real
    traffic.
+5. Mock login stays registered even once `GOOGLE_CLIENT_ID` is set, so account
+   creation isn't actually gated behind verified identity in production unless
+   that route is deliberately disabled — fine today (no billing exists to
+   protect), but revisit before any paid tier, which needs a verified
+   identity to bind a subscription to.

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '../GameContext';
 import { AVATAR_POOL, Orb } from '../components/Orb';
+import { trackEvent } from '../firebase';
 
 const MAX_NICK = 24;
 const INVITE_REF_KEY = 'botcha_invite_ref';
@@ -21,6 +22,10 @@ export function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    trackEvent('signup_start');
+  }, []);
+
   async function submit() {
     if (!nickname.trim()) {
       setError('Pick a nickname first');
@@ -32,6 +37,7 @@ export function Onboarding() {
       const code = inviteCode.trim() || undefined;
       if (googleId) await loginWithGoogleSignup(googleId, nickname.trim(), avatar, code);
       else await login(nickname.trim(), avatar, code);
+      trackEvent('signup_complete', { had_invite_code: !!code });
       localStorage.removeItem(INVITE_REF_KEY);
       navigate('/home');
     } catch (e) {

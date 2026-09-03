@@ -4,7 +4,7 @@ import { useGame } from '../GameContext';
 import { Ambient } from '../components/Ambient';
 import { AVATAR_POOL, Orb } from '../components/Orb';
 import { InstallPrompt } from '../components/InstallPrompt';
-import { enablePushNotifications, getPushStatus, type PushStatus } from '../firebase';
+import { enablePushNotifications, getPushStatus, trackEvent, type PushStatus } from '../firebase';
 import { shareOrCopy } from '../share';
 
 const COIN_ENTRY_PRICE = 25;
@@ -194,6 +194,7 @@ function Profile({ onClose }: { onClose: () => void }) {
 
   async function shareInvite() {
     if (!player) return;
+    trackEvent('share_tap', { source: 'home_invite' });
     const url = `${window.location.origin}/#/?ref=${player.invite_code}`;
     try {
       await shareOrCopy({
