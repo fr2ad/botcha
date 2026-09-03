@@ -8,20 +8,38 @@ import { enablePushNotifications, getPushStatus, trackEvent, type PushStatus } f
 import { shareOrCopy } from '../share';
 
 const COIN_ENTRY_PRICE = 25;
-const DAILY_HEARTS = 5;
+const MAX_HEARTS = 5;
 
-// Server resets hearts on a UTC day stamp (server/src/db/index.ts), so the
-// refill lands at the next UTC midnight — no need to invent a countdown.
-function untilRefill() {
-  const now = new Date();
-  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-  const mins = Math.max(0, Math.round((next - now.getTime()) / 60000));
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+// Candy-Crush-style: one Heart back every 30 min (server/src/config.ts
+// heartRegenMs), not a batch reset at a fixed clock time — regenAt is the
+// next Heart's due timestamp, ticks down live rather than a static estimate.
+function HeartCountdown({ regenAt, onDue }: { regenAt: number; onDue: () => void }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const remainingMs = regenAt - now;
+  useEffect(() => {
+    if (remainingMs <= 0) onDue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingMs <= 0]);
+
+  const totalSec = Math.max(0, Math.ceil(remainingMs / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return (
+    <>
+      {m}:{s.toString().padStart(2, '0')}
+    </>
+  );
 }
 
 export function Home() {
   const navigate = useNavigate();
-  const { state, joinQueue } = useGame();
+  const { state, joinQueue, refreshPlayer } = useGame();
   const [sheet, setSheet] = useState<'hearts' | 'how' | 'profile' | null>(null);
   const player = state.player;
 
@@ -53,7 +71,13 @@ export function Home() {
           <div style={{ display: 'flex', gap: 8 }}>
             <span className="chip">
               <i className="hgi-stroke hgi-favourite" style={{ color: 'var(--pink)', fontSize: 14 }} />
-              {player.hearts_remaining}/{DAILY_HEARTS}
+              {player.hearts_remaining}/{MAX_HEARTS}
+              {player.hearts_remaining < MAX_HEARTS && player.heart_regen_at && (
+                <span style={{ color: 'var(--text-4)', fontWeight: 600 }}>
+                  {' '}
+                  · <HeartCountdown regenAt={player.heart_regen_at} onDue={refreshPlayer} />
+                </span>
+              )}
             </span>
             <span className="chip">
               <i className="hgi-stroke hgi-coins-01" style={{ color: 'var(--amber)', fontSize: 14 }} />
@@ -151,7 +175,7 @@ export function Home() {
             Out of hearts
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 9, margin: '16px 0 6px' }}>
-            {Array.from({ length: DAILY_HEARTS }, (_, i) => (
+            {Array.from({ length: MAX_HEARTS }, (_, i) => (
               <i
                 key={i}
                 className="hgi-stroke hgi-favourite pop"
@@ -160,14 +184,17 @@ export function Home() {
             ))}
           </div>
           <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
-            Hearts refill in <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>{untilRefill()}</span>
+            Next heart in{' '}
+            <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>
+              {player.heart_regen_at ? <HeartCountdown regenAt={player.heart_regen_at} onDue={refreshPlayer} /> : '0:00'}
+            </span>
           </div>
           <button className="btn-primary" style={{ marginTop: 22 }} onClick={startGame} disabled={!canPayCoins}>
             <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 16, color: 'var(--amber)' }} />
             {canPayCoins ? `Play for ${COIN_ENTRY_PRICE} coins` : `Need ${COIN_ENTRY_PRICE} coins`}
           </button>
           <button className="btn-text" style={{ width: '100%' }} onClick={() => setSheet(null)}>
-            Come back tomorrow
+            Close
           </button>
         </div>
       )}

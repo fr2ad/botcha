@@ -45,8 +45,8 @@ a wrong mental model from some other genre of app.
 | **Mention** | An `@CodeName` tag inside a Turn message. Purely textual — it never obligates a reply, because chat stays turn-based. | tag, ping |
 | **Score** | Leaderboard points from Guesses. Not spendable. | points, XP |
 | **Coin** | The spendable in-game currency. | credit, token, gem |
-| **Heart** | A consumable play attempt, 5 free per day. | life, energy, ticket |
-| **Premium** | A monthly subscription lifting the daily Heart limit. Designed, not built. | pro, VIP |
+| **Heart** | A consumable play attempt, 5 max, one regenerates every 30 min. | life, energy, ticket |
+| **Premium** | A monthly subscription lifting the Heart cap. Designed, not built. | pro, VIP |
 
 Why "vote" is banned for Guess: a vote is public and collective, a Guess is
 private and individual. Calling it a vote invites UI that shows other people's
@@ -137,8 +137,10 @@ choices, which would destroy the game.
 
 ## 6. Economy
 
-- **Hearts:** 5 per day, reset on a UTC day stamp. One per game, charged at
-  start. Out of Hearts → 25 Coins, or come back tomorrow.
+- **Hearts:** 5 max, one regenerates every 30 min while below max (a rolling
+  per-Heart timer, not a fixed-clock reset — how long you wait depends only
+  on when you ran out). One per game, charged at start. Out of Hearts →
+  25 Coins, or wait for the next one.
 - **Coins:** signup bonus (50) and correct Guesses (+5). Spent on Coin-entry
   (25). `coin_ledger` is append-only and is the source of truth for balances.
 - Coin purchase and Premium are in the schema but have **no payment gateway**;
@@ -190,7 +192,7 @@ the two halves; they agree on WebSocket message shapes by convention.
 
 ### 8.1 Data model
 
-- `players` — id, nickname, avatar, coins, hearts_remaining, hearts_reset_at, score, created_at
+- `players` — id, nickname, avatar, coins, hearts_remaining, heart_regen_at, score, created_at
 - `games` — id, started_at, ended_at, model_id, persona_id, status (finished/cancelled)
 - `game_seats` — game_id, seat_index, code_name, player_id (NULL = Bot), silent_badge, guess_seat_index, score_delta, coin_delta
 - `coin_ledger` — player_id, delta, reason, game_id?, created_at (append-only)
@@ -223,7 +225,8 @@ Authoritative values live in `server/src/config.ts`.
 | guess timer | 20 s |
 | silent badge after | 2 skipped Turns |
 | min humans to continue | 2 |
-| daily hearts | 5 |
+| max hearts | 5 |
+| heart regen interval | 30 min |
 | signup bonus | 50 coins |
 | correct guess | +20 score, +5 coins |
 | wrong / no guess | −10 score, 0 coins |
@@ -294,11 +297,10 @@ a redesign.
 
 1. Free avatar count, and deferring premium avatars.
 2. Bot API failure handling.
-3. Daily Heart reset at a fixed UTC time rather than a rolling 24 hours.
-4. The 12 s queue fill timeout (`CONFIG.queueFillTimeoutMs`) before empty
+3. The 12 s queue fill timeout (`CONFIG.queueFillTimeoutMs`) before empty
    Seats get Bot-filled — picked to feel responsive, not measured against real
    traffic.
-5. Mock login stays registered even once `GOOGLE_CLIENT_ID` is set, so account
+4. Mock login stays registered even once `GOOGLE_CLIENT_ID` is set, so account
    creation isn't actually gated behind verified identity in production unless
    that route is deliberately disabled — fine today (no billing exists to
    protect), but revisit before any paid tier, which needs a verified

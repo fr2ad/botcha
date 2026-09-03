@@ -14,7 +14,7 @@ export function Queue() {
 
   useEffect(() => {
     if (state.queueBlocked) {
-      alert('You need a heart or 25 coins to queue up. Come back tomorrow when hearts refill.');
+      alert('You need a heart or 25 coins to queue up. Hearts refill one at a time — check Home for the countdown.');
       navigate('/home', { replace: true });
     }
   }, [state.queueBlocked, navigate]);

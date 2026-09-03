@@ -19,8 +19,9 @@ CREATE TABLE IF NOT EXISTS players (
   avatar TEXT NOT NULL,
   coins INTEGER NOT NULL DEFAULT 0,
   score INTEGER NOT NULL DEFAULT 0,
-  hearts_remaining INTEGER NOT NULL DEFAULT ${CONFIG.dailyHearts},
+  hearts_remaining INTEGER NOT NULL DEFAULT ${CONFIG.maxHearts},
   hearts_reset_at TEXT NOT NULL,
+  heart_regen_at INTEGER,
   fcm_token TEXT,
   invite_code TEXT,
   invited_by TEXT,
@@ -103,6 +104,18 @@ try {
 } catch {
   // already has the column
 }
+try {
+  db.exec(`ALTER TABLE players ADD COLUMN heart_regen_at INTEGER`);
+} catch {
+  // already has the column
+}
+// Anyone with hearts_remaining < maxHearts from before this column existed
+// has no regen timer running yet — start one now rather than leaving them
+// stuck below max forever (heart_regen_at stays NULL, which the read path
+// treats as "at max, nothing to regenerate").
+db.prepare(
+  `UPDATE players SET heart_regen_at = ? WHERE heart_regen_at IS NULL AND hearts_remaining < ?`
+).run(Date.now() + CONFIG.heartRegenMs, CONFIG.maxHearts);
 // A separate index rather than an inline UNIQUE column constraint — works the
 // same whether invite_code came from CREATE TABLE (fresh DB) or ALTER TABLE
 // above (existing DB), and IF NOT EXISTS makes it safe to run every boot.
@@ -129,45 +142,56 @@ export type PlayerRow = {
   score: number;
   hearts_remaining: number;
   hearts_reset_at: string;
+  heart_regen_at: number | null;
   fcm_token: string | null;
   invite_code: string;
   invited_by: string | null;
   created_at: string;
 };
 
+// Kept only so hearts_reset_at (still NOT NULL in the schema — no migration
+// framework to drop a column safely, see the ALTER TABLE block above) has
+// something to store; nothing reads it for hearts logic any more.
 function todayResetStamp(): string {
   const d = new Date();
   return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
 }
 
-export function ensureDailyHeartsReset(player: PlayerRow): PlayerRow {
-  const stamp = todayResetStamp();
-  if (player.hearts_reset_at !== stamp) {
-    db.prepare(
-      `UPDATE players SET hearts_remaining = ?, hearts_reset_at = ? WHERE id = ?`
-    ).run(CONFIG.dailyHearts, stamp, player.id);
-    return { ...player, hearts_remaining: CONFIG.dailyHearts, hearts_reset_at: stamp };
-  }
-  return player;
+// Lazy, per-read regen: while below maxHearts, one Heart is due at
+// heart_regen_at and every heartRegenMs after that. Advancing the timer by
+// exactly the whole intervals consumed (rather than resetting it to `now`)
+// means a partially-elapsed interval's progress is never lost just because
+// the player happened to check the app mid-countdown.
+export function ensureHeartsRegenerated(player: PlayerRow): PlayerRow {
+  if (player.hearts_remaining >= CONFIG.maxHearts || player.heart_regen_at == null) return player;
+  const elapsed = Date.now() - player.heart_regen_at;
+  if (elapsed < 0) return player;
+  const gained = 1 + Math.floor(elapsed / CONFIG.heartRegenMs);
+  const heartsRemaining = Math.min(CONFIG.maxHearts, player.hearts_remaining + gained);
+  const heartRegenAt = heartsRemaining < CONFIG.maxHearts ? player.heart_regen_at + gained * CONFIG.heartRegenMs : null;
+  db.prepare(`UPDATE players SET hearts_remaining = ?, heart_regen_at = ? WHERE id = ?`).run(
+    heartsRemaining,
+    heartRegenAt,
+    player.id
+  );
+  return { ...player, hearts_remaining: heartsRemaining, heart_regen_at: heartRegenAt };
 }
 
-// Proactive counterpart to the lazy per-read reset above — run periodically
+// Proactive counterpart to the lazy per-read regen above — run periodically
 // (scheduler.ts) so a refill can trigger a push even if the player's client
-// never happens to poll right at UTC midnight. Only touches players who are
-// both stale *and* below max, so it never re-notifies someone already full.
-export function refillDueHearts(): Array<{ id: string; fcmToken: string }> {
-  const stamp = todayResetStamp();
+// never happens to be open right when a Heart comes due.
+export function regenDueHearts(): Array<{ id: string; fcmToken: string }> {
+  const now = Date.now();
   const due = db
-    .prepare(
-      `SELECT id, fcm_token FROM players WHERE hearts_reset_at != ? AND hearts_remaining < ? AND fcm_token IS NOT NULL`
-    )
-    .all(stamp, CONFIG.dailyHearts) as Array<{ id: string; fcm_token: string }>;
-  db.prepare(`UPDATE players SET hearts_remaining = ?, hearts_reset_at = ? WHERE hearts_reset_at != ?`).run(
-    CONFIG.dailyHearts,
-    stamp,
-    stamp
-  );
-  return due.map((p) => ({ id: p.id, fcmToken: p.fcm_token }));
+    .prepare(`SELECT * FROM players WHERE heart_regen_at IS NOT NULL AND heart_regen_at <= ? AND fcm_token IS NOT NULL`)
+    .all(now) as PlayerRow[];
+  const notified: Array<{ id: string; fcmToken: string }> = [];
+  for (const player of due) {
+    const before = player.hearts_remaining;
+    const after = ensureHeartsRegenerated(player);
+    if (after.hearts_remaining > before) notified.push({ id: player.id, fcmToken: player.fcm_token! });
+  }
+  return notified;
 }
 
 export function setFcmToken(playerId: string, token: string) {
@@ -176,12 +200,12 @@ export function setFcmToken(playerId: string, token: string) {
 
 export function getPlayer(id: string): PlayerRow | undefined {
   const p = db.prepare(`SELECT * FROM players WHERE id = ?`).get(id) as PlayerRow | undefined;
-  return p ? ensureDailyHeartsReset(p) : undefined;
+  return p ? ensureHeartsRegenerated(p) : undefined;
 }
 
 export function getPlayerByGoogleId(googleId: string): PlayerRow | undefined {
   const p = db.prepare(`SELECT * FROM players WHERE google_id = ?`).get(googleId) as PlayerRow | undefined;
-  return p ? ensureDailyHeartsReset(p) : undefined;
+  return p ? ensureHeartsRegenerated(p) : undefined;
 }
 
 export function createPlayer(input: { id: string; googleId: string; nickname: string; avatar: string }): PlayerRow {
@@ -194,7 +218,7 @@ export function createPlayer(input: { id: string; googleId: string; nickname: st
     input.nickname,
     input.avatar,
     CONFIG.signupBonusCoins,
-    CONFIG.dailyHearts,
+    CONFIG.maxHearts,
     todayResetStamp(),
     nanoid(8)
   );
@@ -207,7 +231,7 @@ export function createPlayer(input: { id: string; googleId: string; nickname: st
 
 export function getPlayerByInviteCode(code: string): PlayerRow | undefined {
   const p = db.prepare(`SELECT * FROM players WHERE invite_code = ?`).get(code) as PlayerRow | undefined;
-  return p ? ensureDailyHeartsReset(p) : undefined;
+  return p ? ensureHeartsRegenerated(p) : undefined;
 }
 
 // Silently no-ops on a bad/self code rather than erroring — a mistyped
@@ -253,7 +277,15 @@ export function spendHeartOrCoin(playerId: string): { paidWith: 'heart' | 'coin'
   const player = getPlayer(playerId);
   if (!player) return { error: 'player not found' };
   if (player.hearts_remaining > 0) {
-    db.prepare(`UPDATE players SET hearts_remaining = hearts_remaining - 1 WHERE id = ?`).run(playerId);
+    // Only start the regen clock on the Heart that drops the player below
+    // max — if one's already running (they were already below max), leave
+    // it alone, or every spend would push the next Heart's due time back out.
+    const wasFull = player.hearts_remaining >= CONFIG.maxHearts;
+    const heartRegenAt = wasFull ? Date.now() + CONFIG.heartRegenMs : player.heart_regen_at;
+    db.prepare(`UPDATE players SET hearts_remaining = hearts_remaining - 1, heart_regen_at = ? WHERE id = ?`).run(
+      heartRegenAt,
+      playerId
+    );
     return { paidWith: 'heart' };
   }
   if (player.coins >= CONFIG.coinEntryPrice) {
@@ -264,8 +296,13 @@ export function spendHeartOrCoin(playerId: string): { paidWith: 'heart' | 'coin'
 }
 
 export function refundHeart(playerId: string) {
-  db.prepare(`UPDATE players SET hearts_remaining = MIN(hearts_remaining + 1, ?) WHERE id = ?`).run(
-    CONFIG.dailyHearts,
+  const player = getPlayer(playerId);
+  if (!player) return;
+  const heartsRemaining = Math.min(CONFIG.maxHearts, player.hearts_remaining + 1);
+  const heartRegenAt = heartsRemaining >= CONFIG.maxHearts ? null : player.heart_regen_at;
+  db.prepare(`UPDATE players SET hearts_remaining = ?, heart_regen_at = ? WHERE id = ?`).run(
+    heartsRemaining,
+    heartRegenAt,
     playerId
   );
 }

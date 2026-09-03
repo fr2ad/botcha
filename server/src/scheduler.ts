@@ -1,4 +1,4 @@
-import { refillDueHearts } from './db/index.js';
+import { regenDueHearts } from './db/index.js';
 import { FIREBASE_SERVICE_ACCOUNT_JSON } from './config.js';
 
 // No Firebase project configured -> hearts still refill (getPlayer's own
@@ -16,7 +16,7 @@ async function getMessaging() {
 }
 
 async function sweep() {
-  const refilled = refillDueHearts();
+  const refilled = regenDueHearts();
   if (refilled.length === 0) return;
   const fcm = await getMessaging();
   if (!fcm) return;
@@ -24,7 +24,7 @@ async function sweep() {
     fcm
       .send({
         token: fcmToken,
-        notification: { title: 'Botcha', body: 'Your hearts refilled — go find a bot ❤️' }
+        notification: { title: 'Botcha', body: 'A heart refilled — go find a bot ❤️' }
       })
       // An expired/unregistered token is expected churn (uninstalled PWA,
       // revoked permission) — not worth crashing the sweep over.
@@ -32,10 +32,10 @@ async function sweep() {
   }
 }
 
-// A daily reset only needs checking a few times an hour, not continuously —
-// ponytail: fixed interval, not aligned to UTC midnight, so worst case a
-// refill's push is up to this long late. Tighten if that's ever noticeable.
-const SWEEP_INTERVAL_MS = 15 * 60_000;
+// Heart regen is checked in slices well under its own 30-min interval, not
+// continuously — worst case a refill's push is up to this long late relative
+// to the moment the Heart actually became available. Tighten if noticeable.
+const SWEEP_INTERVAL_MS = 5 * 60_000;
 
 export function startScheduler() {
   sweep().catch((err) => console.error('[scheduler] sweep failed', err));

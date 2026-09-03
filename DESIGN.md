@@ -130,7 +130,7 @@ Frame IDs refer to the handoff bundle.
 | 1c | **Landing** | Wordmark 46px, tagline, pulsing Google CTA, three step icons |
 | 1d | **Onboarding** | Nickname pill with live counter + blinking caret, 4-column avatar orb grid, "+50 coins" chip, "Let's go" |
 | 1e | **Home** | Hearts/coins chips, avatar orb, Play orb inside two `ringPulse` rings, online count, Leaderboard / How to play |
-| 1f | **Out of hearts** | Bottom sheet over a blurred Home: 5 spent hearts, refill copy, "Play for 25 coins", "Come back tomorrow" |
+| 1f | **Out of hearts** | Bottom sheet over a blurred Home: 5 spent hearts, live "next heart in M:SS" countdown, "Play for 25 coins", "Close" |
 | 1g | **Queue** | "FINDING HUMANS" pill with blinking dots, 4 seats (you glowing, joined, dashed empties), invite link, free-to-wait note |
 | 1h | **Roster** | "STARTING IN 3" badge, 2×2 seat cards flipping in, "one of these four is not human…" |
 | 1i | **Table** | Round counter with progress dots, horizontal seat strip (speaker enlarged with draining ring + "SPEAKING · Ns"), table log, composer pill, footer line |

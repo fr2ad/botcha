@@ -12,7 +12,12 @@ export const CONFIG = {
   turnWindowMs: 30_000,
   maxMessageLength: 200,
   guessWindowMs: 20_000,
-  dailyHearts: 5,
+  maxHearts: 5,
+  // Candy Crush's exact cadence: one Heart back every 30 min, capped at
+  // maxHearts — a rolling per-Heart timer instead of a full reset at a fixed
+  // clock time, so how long you wait depends only on when you ran out, never
+  // on the wall-clock hour you happened to run out at.
+  heartRegenMs: 30 * 60_000,
   signupBonusCoins: 50,
   // Paid on top of signupBonusCoins the first time a new player's signup
   // carries a valid, non-self invite code — split so both sides feel it.

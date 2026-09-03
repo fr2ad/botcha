@@ -170,6 +170,7 @@ type Ctx = {
   submitGuess: (seatIndex: number) => void;
   goHome: () => void;
   leaveGame: () => void;
+  refreshPlayer: () => void;
   changeAvatar: (avatar: string) => Promise<void>;
   logout: () => void;
 };
@@ -343,6 +344,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, [send, connect, state.player]);
 
+  // Exposed so a screen-local countdown (Home's Heart regen timer) can pull
+  // a fresh balance the moment it hits zero, instead of waiting on the
+  // visibilitychange refetch below — which only fires on refocus, not on a
+  // timer elapsing while the tab stays in the foreground the whole time.
+  const refreshPlayer = useCallback(() => {
+    if (!state.player) return;
+    fetchPlayer(state.player.id)
+      .then(({ player }) => dispatch({ type: 'SET_PLAYER', player }))
+      .catch(() => {});
+  }, [state.player]);
+
   const changeAvatar = useCallback(async (avatar: string) => {
     const id = localStorage.getItem(STORAGE_KEY);
     if (!id) return;
@@ -441,6 +453,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       submitGuess,
       goHome,
       leaveGame,
+      refreshPlayer,
       changeAvatar,
       logout
     }),
@@ -456,6 +469,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       submitGuess,
       goHome,
       leaveGame,
+      refreshPlayer,
       changeAvatar,
       logout
     ]

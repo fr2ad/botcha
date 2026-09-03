@@ -5,6 +5,8 @@ export type Player = {
   coins: number;
   score: number;
   hearts_remaining: number;
+  // Epoch ms when the next Heart regenerates; null once back at max.
+  heart_regen_at: number | null;
   invite_code: string;
   rank: number;
   history: { correct: number; wrong: number; noGuess: number; games: number };
