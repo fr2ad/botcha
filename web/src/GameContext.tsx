@@ -325,12 +325,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // in-flight frames from the abandoned room's remaining lifecycle.
   const leaveGame = useCallback(() => {
     if (!state.player) return;
+    const playerId = state.player.id;
     send({ type: 'game.leave' });
     intentionalCloseRef.current = true;
     wsRef.current?.close();
     wsRef.current = null;
     dispatch({ type: 'RESET_TO_HOME' });
-    connect(state.player.id);
+    connect(playerId);
+    // The Heart/Coin for this room was already spent at queue-join, and
+    // nothing in the WS protocol carries the new balance back — same reason
+    // the cancelled/result effect below re-fetches. That effect only fires
+    // on those two phases; leaving resets straight to 'idle', so it needs
+    // its own fetch or Home shows the pre-spend count until an unrelated
+    // later game or a hard reload.
+    fetchPlayer(playerId)
+      .then(({ player }) => dispatch({ type: 'SET_PLAYER', player }))
+      .catch(() => {});
   }, [send, connect, state.player]);
 
   const changeAvatar = useCallback(async (avatar: string) => {
@@ -371,6 +381,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .then(({ player }) => dispatch({ type: 'SET_PLAYER', player }))
       .catch(() => {});
   }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Two more ways hearts/coins change with no WS message to catch it: the
+  // 15-minute Hearts-refill sweep (scheduler.ts — push notification only)
+  // and an invite reward landing on the inviter's side (applyInvite in
+  // db/index.ts — fires off the invitee's signup, never tells the inviter).
+  // Both are invisible to a tab that's just sitting open; refetching
+  // whenever it's brought back to the foreground self-heals either case
+  // without needing new server push plumbing.
+  useEffect(() => {
+    if (!state.player) return;
+    const playerId = state.player.id;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      fetchPlayer(playerId)
+        .then(({ player }) => dispatch({ type: 'SET_PLAYER', player }))
+        .catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [state.player?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => {
