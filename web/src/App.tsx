@@ -17,6 +17,7 @@ import { BotTest } from './screens/BotTest';
 import { Privacy } from './screens/Privacy';
 import { Terms } from './screens/Terms';
 import { SessionEnded } from './screens/SessionEnded';
+import { UpdateBanner } from './components/UpdateBanner';
 import type { GamePhase } from './types';
 
 function Splash() {
@@ -196,6 +197,7 @@ export default function App() {
             <Router />
           </HashRouter>
         </Boot>
+        <UpdateBanner />
       </div>
     </GameProvider>
   );
