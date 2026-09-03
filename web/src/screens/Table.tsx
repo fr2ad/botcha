@@ -36,15 +36,15 @@ export function Table() {
   }, []);
 
   useEffect(() => {
-    if (state.phase === 'guess') navigate('/guess');
-    if (state.phase === 'idle') navigate('/home');
+    if (state.phase === 'guess') navigate('/guess', { replace: true });
+    if (state.phase === 'idle') navigate('/home', { replace: true });
     if (state.phase === 'cancelled') {
       alert(
         state.cancelReason === 'not_enough_players'
           ? 'Not enough players left — your heart was refunded.'
           : 'Game cancelled.'
       );
-      navigate('/home');
+      navigate('/home', { replace: true });
     }
   }, [state.phase, state.cancelReason, navigate]);
 

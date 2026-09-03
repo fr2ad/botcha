@@ -11,8 +11,8 @@ export function Roster() {
   const [count, setCount] = useState(3);
 
   useEffect(() => {
-    if (state.phase === 'chat') navigate('/table');
-    if (state.phase === 'idle') navigate('/home');
+    if (state.phase === 'chat') navigate('/table', { replace: true });
+    if (state.phase === 'idle') navigate('/home', { replace: true });
   }, [state.phase, navigate]);
 
   useEffect(() => {

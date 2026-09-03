@@ -9,13 +9,13 @@ export function Queue() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (state.phase === 'roster') navigate('/roster');
+    if (state.phase === 'roster') navigate('/roster', { replace: true });
   }, [state.phase, navigate]);
 
   useEffect(() => {
     if (state.queueBlocked) {
       alert('You need a heart or 25 coins to queue up. Come back tomorrow when hearts refill.');
-      navigate('/home');
+      navigate('/home', { replace: true });
     }
   }, [state.queueBlocked, navigate]);
 

@@ -9,8 +9,8 @@ export function Reveal() {
   const { state } = useGame();
 
   useEffect(() => {
-    if (state.phase === 'result') navigate('/result');
-    if (state.phase === 'idle') navigate('/home');
+    if (state.phase === 'result') navigate('/result', { replace: true });
+    if (state.phase === 'idle') navigate('/home', { replace: true });
   }, [state.phase, navigate]);
 
   const reveal = state.reveal;

@@ -12,8 +12,8 @@ export function Guess() {
   const { state, submitGuess } = useGame();
 
   useEffect(() => {
-    if (state.phase === 'reveal') navigate('/reveal');
-    if (state.phase === 'idle') navigate('/home');
+    if (state.phase === 'reveal') navigate('/reveal', { replace: true });
+    if (state.phase === 'idle') navigate('/home', { replace: true });
   }, [state.phase, navigate]);
 
   const locked = state.myGuess !== null;
