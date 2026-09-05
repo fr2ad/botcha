@@ -222,7 +222,7 @@ Authoritative values live in `server/src/config.ts`.
 | table rounds | 3 |
 | turn window | 30 s |
 | max message length | 200 chars |
-| guess timer | 20 s |
+| guess timer | 15 s |
 | silent badge after | 2 skipped Turns |
 | min humans to continue | 2 |
 | max hearts | 5 |

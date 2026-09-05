@@ -78,8 +78,8 @@ const TURN_MOVES = [
   'React to something specific someone actually said — don\'t just say "lol" or another one-word filler.',
   'React to something specific someone actually said — don\'t just say "lol" or another one-word filler.',
   "Ask the table something simple and offhand — where's someone from, what language do they usually talk, stuff like that.",
-  'Playfully accuse a specific person of being the bot, by name.',
-  'Trash talk someone a little, calling back to something they actually said.',
+  'Playfully accuse a specific person of being the bot, @mentioning them.',
+  'Trash talk someone a little, @mentioning them, calling back to something they actually said.',
   '@Mention someone by name and reply to them directly.'
 ];
 
@@ -113,7 +113,7 @@ export async function getBotReply(
         // three clauses stitched together. pickTurnMove rotates the specific
         // move (question, accusation, trash talk...) so it's not the same
         // "react and move on" every single turn.
-        `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. Write in the SAME language and script the others are using, matching their tone and register — if they write Persian, write Persian. Talk TO people, not about them in the third person. One short sentence or fragment — no multi-clause run-ons, that reads as an essay, not a text. ${pickTurnMove()})`;
+        `(Round ${round}/${CONFIG.tableRounds}. Send your next chat message now, under ${CONFIG.maxMessageLength} chars. Write in the SAME language and script the others are using, matching their tone and register — if they write Persian, write Persian. Talk TO people, not about them in the third person. One short sentence or fragment — no multi-clause run-ons, that reads as an essay, not a text. If you name another player, always write their exact code name with an @ right before it (e.g. @CrimsonOwl) — never say their name bare with no @, and if you're not going to @mention them, don't name them at all. ${pickTurnMove()})`;
 
   // The bot's own past turns go back as `assistant`, not as another
   // "Name: text" user line. Feeding them as user messages made it treat its

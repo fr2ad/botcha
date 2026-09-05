@@ -11,7 +11,7 @@ export const CONFIG = {
   queueFillTimeoutMs: 12_000,
   turnWindowMs: 30_000,
   maxMessageLength: 200,
-  guessWindowMs: 20_000,
+  guessWindowMs: 15_000,
   maxHearts: 5,
   // Candy Crush's exact cadence: one Heart back every 30 min, capped at
   // maxHearts — a rolling per-Heart timer instead of a full reset at a fixed

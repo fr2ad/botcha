@@ -5,14 +5,14 @@ import { ChatTranscript } from '../components/ChatTranscript';
 import { CountdownRing } from '../components/CountdownRing';
 import { SeatAvatar } from '../components/SeatAvatar';
 
-const GUESS_WINDOW_MS = 20_000;
+const GUESS_WINDOW_MS = 15_000;
 
 export function Guess() {
   const navigate = useNavigate();
   const { state, submitGuess } = useGame();
 
   useEffect(() => {
-    if (state.phase === 'reveal') navigate('/reveal', { replace: true });
+    if (state.phase === 'reveal') navigate('/result', { replace: true });
     if (state.phase === 'idle') navigate('/home', { replace: true });
   }, [state.phase, navigate]);
 
@@ -55,9 +55,9 @@ export function Guess() {
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>1–3 of them are. Pick one, one shot.</div>
 
-      <div style={{ margin: '24px 0 28px' }}>
+      <div style={{ margin: '10px 0 14px' }}>
         {state.guessDeadline && (
-          <CountdownRing deadline={state.guessDeadline} totalMs={GUESS_WINDOW_MS} size={116} label="TO VOTE" />
+          <CountdownRing deadline={state.guessDeadline} totalMs={GUESS_WINDOW_MS} size={72} label="TO VOTE" />
         )}
       </div>
 
