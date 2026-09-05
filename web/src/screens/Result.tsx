@@ -155,14 +155,20 @@ export function Result() {
     });
   }, [result, reveal, state.player, state.roster, state.messages, state.mySeatIndex]);
 
-  if (!result || !reveal) return <div className="screen" />;
+  if (!reveal) return <div className="screen" />;
 
-  const correct = result.outcome === 'correct';
-  const outcomeLabel = correct
-    ? 'You caught the bot!'
-    : result.outcome === 'wrong'
-      ? 'You picked wrong…'
-      : "You didn't guess in time";
+  // result lands ~6s after reveal (room.ts runReveal) — long enough to read
+  // who was the bot before your own score does. Everything outcome-specific
+  // (title color, score/coins, share, chat replay) waits on it; the identity
+  // list below does not, since "who was the bot" is reveal's own data.
+  const correct = result?.outcome === 'correct';
+  const outcomeLabel = result
+    ? result.outcome === 'correct'
+      ? 'You caught the bot!'
+      : result.outcome === 'wrong'
+        ? 'You picked wrong…'
+        : "You didn't guess in time"
+    : null;
   const botSeats = reveal.botSeatIndexes
     .map((i) => state.roster.find((s) => s.seatIndex === i))
     .filter((s): s is NonNullable<typeof s> => !!s);
@@ -217,7 +223,9 @@ export function Result() {
           width: 420,
           height: 420,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'}, transparent 65%)`,
+          background: `radial-gradient(circle, ${
+            !result ? 'rgba(124,110,246,.12)' : correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'
+          }, transparent 65%)`,
           animation: correct ? 'glowBloom .6s cubic-bezier(0.16,1,0.3,1) both' : undefined
         }}
       />
@@ -227,87 +235,95 @@ export function Result() {
         style={{
           paddingTop: 40,
           fontFamily: 'var(--font-head)',
-          fontWeight: 700,
-          fontSize: 26,
+          fontWeight: result ? 700 : 600,
+          fontSize: result ? 26 : 17,
           textAlign: 'center',
-          color: correct ? 'var(--green)' : 'var(--pink)',
+          color: result ? (correct ? 'var(--green)' : 'var(--pink)') : 'var(--text-2)',
+          letterSpacing: result ? undefined : 1,
           textShadow: correct ? '0 0 24px rgba(56,217,122,.4)' : undefined,
           animation: correct ? 'winPop .6s cubic-bezier(0.16,1,0.3,1) both' : undefined
         }}
       >
-        {outcomeLabel}
+        {/* result lands ~6s after reveal (room.ts runReveal) — this neutral
+            heading fills that window so the screen isn't just a blank gap
+            above the identity list while the personal outcome is still en route. */}
+        {result ? outcomeLabel : botSeats.length > 1 ? `${botSeats.length} bots were…` : 'The bot was…'}
       </div>
-      {result.outcome === 'wrong' && (
+      {result?.outcome === 'wrong' && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
           {botNames} fooled you. It happens to the best.
         </div>
       )}
-      {result.outcome === 'no_guess' && (
+      {result?.outcome === 'no_guess' && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, textAlign: 'center' }}>
           The clock ran out — {botNames} {botSeats.length > 1 ? 'were' : 'was'} the bot{botSeats.length > 1 ? 's' : ''}.
         </div>
       )}
 
-      <div className={correct ? undefined : 'shake'} style={{ display: 'flex', gap: 10, margin: '20px 0 6px' }}>
-        <span
-          className={correct ? 'pop' : undefined}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)',
-            border: `1px solid ${correct ? 'rgba(56,217,122,.4)' : 'rgba(255,92,138,.35)'}`,
-            padding: '8px 16px',
-            fontSize: 13,
-            fontWeight: 800,
-            borderRadius: 999,
-            color: correct ? 'var(--green)' : 'var(--pink)',
-            ['--i' as string]: 4
-          }}
-        >
-          {result.scoreDelta >= 0 ? '+' : ''}
-          {result.scoreDelta} score
-        </span>
-        <span
-          className={correct ? 'pop' : undefined}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: result.coinDelta > 0 ? 'rgba(255,207,61,.1)' : 'var(--panel)',
-            border: `1px solid ${result.coinDelta > 0 ? 'rgba(255,207,61,.35)' : 'rgba(255,255,255,.1)'}`,
-            padding: '8px 16px',
-            fontSize: 13,
-            fontWeight: 800,
-            borderRadius: 999,
-            color: result.coinDelta > 0 ? 'var(--amber)' : 'var(--text-3)',
-            ['--i' as string]: 5
-          }}
-        >
-          <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 14 }} />+{result.coinDelta} coins
-        </span>
-      </div>
+      {result && (
+        <>
+          <div className={correct ? undefined : 'shake'} style={{ display: 'flex', gap: 10, margin: '20px 0 6px' }}>
+            <span
+              className={correct ? 'pop' : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)',
+                border: `1px solid ${correct ? 'rgba(56,217,122,.4)' : 'rgba(255,92,138,.35)'}`,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 800,
+                borderRadius: 999,
+                color: correct ? 'var(--green)' : 'var(--pink)',
+                ['--i' as string]: 4
+              }}
+            >
+              {result.scoreDelta >= 0 ? '+' : ''}
+              {result.scoreDelta} score
+            </span>
+            <span
+              className={correct ? 'pop' : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: result.coinDelta > 0 ? 'rgba(255,207,61,.1)' : 'var(--panel)',
+                border: `1px solid ${result.coinDelta > 0 ? 'rgba(255,207,61,.35)' : 'rgba(255,255,255,.1)'}`,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 800,
+                borderRadius: 999,
+                color: result.coinDelta > 0 ? 'var(--amber)' : 'var(--text-3)',
+                ['--i' as string]: 5
+              }}
+            >
+              <i className="hgi-stroke hgi-coins-01" style={{ fontSize: 14 }} />+{result.coinDelta} coins
+            </span>
+          </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>
-        Leaderboard <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>#{result.leaderboardRank}</span>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>
+            Leaderboard <span style={{ color: 'var(--text-1)', fontWeight: 800 }}>#{result.leaderboardRank}</span>
+          </div>
 
-      {/* Primary CTA moved above the identity reveal / chat replay so it sits
-          with the rest of the outcome, right at the game's peak-end moment,
-          instead of being buried under everything else on a long scroll. */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 24, width: '100%' }}>
-        <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>
-          <i className="hgi-stroke hgi-share-01" style={{ fontSize: 14 }} />
-          {sharing ? 'Saving…' : 'Share'}
-        </button>
-        <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
-          {correct ? 'Play again' : 'Run it back'}
-        </button>
-      </div>
+          {/* Primary CTA moved above the identity reveal / chat replay so it sits
+              with the rest of the outcome, right at the game's peak-end moment,
+              instead of being buried under everything else on a long scroll. */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 24, width: '100%' }}>
+            <button className="btn-outline" style={{ flex: 1 }} onClick={share} disabled={sharing}>
+              <i className="hgi-stroke hgi-share-01" style={{ fontSize: 14 }} />
+              {sharing ? 'Saving…' : 'Share'}
+            </button>
+            <button className="btn-primary" style={{ flex: 1.4 }} onClick={playAgain}>
+              {correct ? 'Play again' : 'Run it back'}
+            </button>
+          </div>
 
-      <div style={{ fontSize: 10, color: 'var(--text-5)', marginTop: 8, textAlign: 'center' }}>
-        The share card includes this table's chat — see Terms.
-      </div>
+          <div style={{ fontSize: 10, color: 'var(--text-5)', marginTop: 8, textAlign: 'center' }}>
+            The share card includes this table's chat — see Terms.
+          </div>
+        </>
+      )}
 
       <div
         style={{
@@ -326,6 +342,7 @@ export function Result() {
           const guess = reveal.guesses.find((g) => g.seatIndex === identity.seatIndex);
           const isMe = identity.seatIndex === state.mySeatIndex;
           const guessedRight = guess?.guessSeatIndex != null && reveal.botSeatIndexes.includes(guess.guessSeatIndex);
+          const pickedSeat = state.roster.find((s) => s.seatIndex === guess?.guessSeatIndex);
           return (
             <div
               key={identity.seatIndex}
@@ -376,17 +393,34 @@ export function Result() {
               {identity.isBot ? (
                 <i className="hgi-stroke hgi-bot" style={{ fontSize: 17, color: 'var(--accent-2)' }} />
               ) : (
-                <i
-                  className={`hgi-stroke ${guessedRight ? 'hgi-checkmark-circle-02' : 'hgi-cancel-circle'}`}
-                  style={{ fontSize: 16, color: guessedRight ? 'var(--green)' : 'var(--text-5)' }}
-                />
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    flexShrink: 0,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: guessedRight ? 'var(--green)' : 'var(--pink)'
+                  }}
+                >
+                  <i
+                    className={`hgi-stroke ${guessedRight ? 'hgi-checkmark-circle-02' : 'hgi-cancel-circle'}`}
+                    style={{ fontSize: 15 }}
+                  />
+                  {guessedRight
+                    ? 'caught it'
+                    : guess?.guessSeatIndex == null
+                      ? 'no guess'
+                      : `picked ${pickedSeat?.codeName.split(' ')[1] ?? '?'}`}
+                </span>
               )}
             </div>
           );
         })}
       </div>
 
-      {state.messages.length > 0 && (
+      {result && state.messages.length > 0 && (
         <div style={{ width: '100%', marginTop: 20 }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: 'var(--text-5)', fontWeight: 800, marginBottom: 10 }}>
             CHAT REPLAY · <span style={{ color: 'var(--accent-2)' }}>bot lines highlighted</span>
@@ -417,16 +451,18 @@ export function Result() {
       {showFeedback && <div className="scrim" onClick={() => setShowFeedback(false)} />}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
-      <button
-        className="btn-text"
-        style={{ marginTop: 16 }}
-        onClick={() => {
-          goHome();
-          navigate('/home');
-        }}
-      >
-        Back to home
-      </button>
+      {result && (
+        <button
+          className="btn-text"
+          style={{ marginTop: 16 }}
+          onClick={() => {
+            goHome();
+            navigate('/home');
+          }}
+        >
+          Back to home
+        </button>
+      )}
     </div>
   );
 }

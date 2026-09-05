@@ -471,12 +471,20 @@ a {
   }
 }
 
-@keyframes fall {
-  from {
-    transform: translateY(-20px) rotate(0deg);
+/* Confetti cannon burst — --dx/--rot are set per piece (Ambient.tsx). The
+   35% mid-step is the arc's peak (up and partway across) before it falls
+   the rest of the way; vh keeps the arc proportional to viewport height. */
+@keyframes cannonBurst {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
   }
-  to {
-    transform: translateY(860px) rotate(540deg);
+  35% {
+    transform: translate(calc(var(--dx) * 0.55), -18vh) rotate(calc(var(--rot) * 0.4));
+  }
+  100% {
+    transform: translate(var(--dx), 32vh) rotate(var(--rot));
+    opacity: 0;
   }
 }
 

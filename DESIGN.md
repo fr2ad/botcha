@@ -79,7 +79,7 @@ Every keyframe is defined once in `index.css`. Names are the contract — screen
 | `ringPulse` | 2.6s | expanding rings around Play orb, "you" seat in queue |
 | `blink` | 1–1.2s | loading dots, input caret, vote-progress dots |
 | `eyeScan` | 3s | pupil in the wordmark and splash logo |
-| `fall` | 4–5.5s | confetti on a correct catch |
+| `cannonBurst` | 1.2–1.7s | confetti on a correct catch |
 | `dashPulse` | 2s | empty queue slot border |
 | `screenIn` | .34s | **every screen mount** — the route transition |
 | `popIn` | .3s | avatar select, seat cards, locked-in guess |
@@ -116,7 +116,7 @@ Shared vocabulary lives in `index.css` as classes; screens compose them and only
 | `<SeatAvatar/>` | in-game seat: **dark well** (`--surface`) + colored ring + colored code-name initial in Fredoka. Never a filled color disc |
 | `<CountdownRing/>` | conic-gradient ring draining over the turn/guess window, seconds in Fredoka at center, optional label |
 | `<Ambient/>` | the radial violet wash + 3–4 drifting particles. Decorative, `pointer-events:none`, `aria-hidden` |
-| `<Confetti/>` | 6 falling chips in the seat colors. Rendered only on a correct catch |
+| `<Confetti/>` | Two cannons (bottom-left/bottom-right) bursting chips in the seat colors toward the middle. `position:fixed`, not `.ambient` — Result's content can run taller than one viewport, and an absolute-positioned burst used to stop partway down and sit there. Rendered only on a correct catch |
 
 ---
 
@@ -134,9 +134,8 @@ Frame IDs refer to the handoff bundle.
 | 1g | **Queue** | "FINDING HUMANS" pill with blinking dots, 4 seats (you glowing, joined, dashed empties), invite link, free-to-wait note |
 | 1h | **Roster** | "STARTING IN 3" badge, 2×2 seat cards flipping in, "one of these four is not human…" |
 | 1i | **Table** | Round counter with progress dots, horizontal seat strip (speaker enlarged with draining ring + "SPEAKING · Ns"), table log, composer pill, footer line |
-| 1j | **Guess** | "Who's the bot?", big draining ring, seat rows (yours excluded), LOCKED IN state, vote-progress dots |
-| 1k | **Reveal** | Spotlight wash, bot avatar in pink ring, code name, "was really …", who-guessed-what row, confetti if you were right |
-| 1l/1m | **Result** | Outcome title (green/pink), score + coin pills, leaderboard rank, full identity list, Share + Play again |
+| 1j | **Guess** | "Who's the bot?", small draining ring, seat rows (yours excluded), LOCKED IN state, vote-progress dots |
+| 1k/1l/1m | **Result** | One screen carries both the `reveal` and `game.result` phases — a neutral heading + the identity list (who was the bot, who guessed right/wrong) render the instant `reveal` arrives; the outcome title (green/pink), score + coin pills, leaderboard rank, cannon-burst confetti if you were right, and Share/Play-again fill in ~6s later when `game.result` lands. Frame 1k's standalone spotlight-avatar treatment was dropped as redundant with the identity list. |
 | 1n | **Leaderboard** | Gold-tinted #1 row, accent-ringed "You" row, rows cascade in |
 | 1o | **How to play** | Centered modal over blurred Home: three steps, fact chips, "Got it" |
 

@@ -10,7 +10,6 @@ import { Queue } from './screens/Queue';
 import { Roster } from './screens/Roster';
 import { Table } from './screens/Table';
 import { Guess } from './screens/Guess';
-import { Reveal } from './screens/Reveal';
 import { Result } from './screens/Result';
 import { Leaderboard } from './screens/Leaderboard';
 import { BotTest } from './screens/BotTest';
@@ -110,7 +109,7 @@ const PHASE_ROUTE: Partial<Record<GamePhase, string>> = {
   roster: '/roster',
   chat: '/table',
   guess: '/guess',
-  reveal: '/reveal',
+  reveal: '/result',
   result: '/result',
   failed: '/session-ended'
 };
@@ -174,7 +173,6 @@ function Router() {
       <Route path="/roster" element={loggedIn ? <Roster /> : <Navigate to="/" replace />} />
       <Route path="/table" element={loggedIn ? <Table /> : <Navigate to="/" replace />} />
       <Route path="/guess" element={loggedIn ? <Guess /> : <Navigate to="/" replace />} />
-      <Route path="/reveal" element={loggedIn ? <Reveal /> : <Navigate to="/" replace />} />
       <Route path="/result" element={loggedIn ? <Result /> : <Navigate to="/" replace />} />
       <Route path="/leaderboard" element={loggedIn ? <Leaderboard /> : <Navigate to="/" replace />} />
       {/* Public on purpose — Google's OAuth consent screen links to these, and

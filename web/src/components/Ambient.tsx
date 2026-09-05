@@ -34,31 +34,48 @@ export function Ambient({ washTop = -120 }: { washTop?: number }) {
 
 const CONFETTI_COLORS = ['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--pink)', 'var(--blue)', 'var(--accent-2)'];
 
-// A real burst, not a drizzle: dense spread, launched together within a third
-// of a second, gone in under 2.5s — a slow six-piece infinite loop read as
-// ambient rain rather than a win. `ease-in` gives the fall itself a gravity
-// feel (accelerating) instead of the constant speed `linear` gave it.
-const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
-  left: `${4 + i * 4.3}%`,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  size: 6 + (i % 3) * 2,
-  dur: 1.6 + (i % 5) * 0.18,
-  delay: (i % 7) * 0.05
-}));
+// Two cannons firing from the bottom corners toward the middle, not a
+// top-down drizzle — dx/rot vary per piece so the burst fans out instead of
+// every piece tracing the same line; the shared cannonBurst keyframe (index.css)
+// reads them off --dx/--rot custom properties.
+function cannonPieces(side: 'left' | 'right', count: number) {
+  const sign = side === 'left' ? 1 : -1;
+  return Array.from({ length: count }, (_, i) => ({
+    side,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    size: 6 + (i % 3) * 2,
+    bottom: (i % 5) * 5,
+    dx: sign * (90 + (i % 6) * 24),
+    rot: sign * (360 + (i % 4) * 180),
+    dur: 1.2 + (i % 5) * 0.12,
+    delay: (i % 6) * 0.04
+  }));
+}
+
+const CONFETTI = [...cannonPieces('left', 14), ...cannonPieces('right', 14)];
 
 export function Confetti() {
   return (
-    <div className="ambient" aria-hidden>
+    // position:fixed (not the shared .ambient, which is absolute relative to
+    // .screen) — Result's content can grow taller than one viewport, and an
+    // absolute-positioned burst sized for a single screen's-worth of travel
+    // used to stop partway down that taller page and just sit there instead
+    // of clipping away. Fixed always clips against the actual viewport.
+    <div aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
       {CONFETTI.map((c, i) => (
         <span
           key={i}
           className="confetti"
           style={{
-            left: c.left,
+            top: 'auto',
+            bottom: c.bottom,
+            [c.side]: -10,
             width: c.size,
             height: c.size * 1.6,
             background: c.color,
-            animation: `fall ${c.dur}s cubic-bezier(0.55,0.06,0.68,0.19) ${c.delay}s both`
+            ['--dx' as string]: `${c.dx}px`,
+            ['--rot' as string]: `${c.rot}deg`,
+            animation: `cannonBurst ${c.dur}s cubic-bezier(0.16,0.84,0.44,1) ${c.delay}s both`
           }}
         />
       ))}
