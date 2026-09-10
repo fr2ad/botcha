@@ -13,6 +13,7 @@ import { Guess } from './screens/Guess';
 import { Result } from './screens/Result';
 import { Leaderboard } from './screens/Leaderboard';
 import { BotTest } from './screens/BotTest';
+import { ConfettiTest } from './screens/ConfettiTest';
 import { Privacy } from './screens/Privacy';
 import { Terms } from './screens/Terms';
 import { SessionEnded } from './screens/SessionEnded';
@@ -180,6 +181,7 @@ function Router() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/bot-test" element={<BotTest />} />
+<Route path="/confetti-test" element={<ConfettiTest />} />
       <Route path="/session-ended" element={loggedIn ? <SessionEnded /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
