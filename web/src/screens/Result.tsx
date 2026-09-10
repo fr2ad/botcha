@@ -223,6 +223,7 @@ export function Result() {
           width: 420,
           height: 420,
           borderRadius: '50%',
+          pointerEvents: 'none',
           background: `radial-gradient(circle, ${
             !result ? 'rgba(124,110,246,.12)' : correct ? 'rgba(56,217,122,.12)' : 'rgba(255,92,138,.1)'
           }, transparent 65%)`,

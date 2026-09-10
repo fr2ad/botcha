@@ -493,12 +493,25 @@ a {
   0% {
     transform: translate(0, 0) rotate(0deg);
     opacity: 1;
+    /* Snappy launch — most of the trip up happens fast. A single easing
+       curve for the whole animation would carry this same fast-out shape
+       into the fall below, making it rocket back down in the first ~15% of
+       the fall segment instead of actually falling "slowly". Overriding
+       per-keyframe lets the launch stay punchy while the fall (next stop)
+       gets its own linear pace. */
+    animation-timing-function: cubic-bezier(0.15, 0.8, 0.25, 1);
   }
-  20% {
-    transform: translate(calc(var(--dx) * 0.7), -62vh) rotate(calc(var(--rot) * 0.55));
+  18% {
+    /* Peak: overshoots almost to the top of the page (past the result
+       title) before gravity takes over. */
+    transform: translate(calc(var(--dx) * 0.7), -88vh) rotate(calc(var(--rot) * 0.35));
+    opacity: 1;
+    animation-timing-function: linear;
   }
   100% {
-    transform: translate(var(--dx), 14vh) rotate(var(--rot));
+    /* Ends at page-center, not back at the bottom — pieces fade out mid-fall,
+       they never complete the trip back down. */
+    transform: translate(var(--dx), -50vh) rotate(var(--rot));
     opacity: 0;
   }
 }
