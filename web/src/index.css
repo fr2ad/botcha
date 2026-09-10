@@ -331,16 +331,6 @@ a {
   background: var(--accent-2);
 }
 
-.confetti {
-  position: absolute;
-  top: -16px;
-  width: 7px;
-  height: 11px;
-  border-radius: 2px;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
 /* ---------- animation utilities ---------- */
 
 /* --stagger keeps long lists from trickling: 60ms reads well up to ~8 items,
@@ -482,37 +472,6 @@ a {
   }
   50% {
     transform: translateX(3px);
-  }
-}
-
-/* Confetti cannon burst — --dx/--rot are set per piece (Ambient.tsx). The
-   45% mid-step is the arc's peak: both cannons' pieces converge near top-
-   middle there (large --dx crosses well past screen center) before gravity
-   pulls them back down; vh keeps the arc proportional to viewport height. */
-@keyframes cannonBurst {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 1;
-    /* Snappy launch — most of the trip up happens fast. A single easing
-       curve for the whole animation would carry this same fast-out shape
-       into the fall below, making it rocket back down in the first ~15% of
-       the fall segment instead of actually falling "slowly". Overriding
-       per-keyframe lets the launch stay punchy while the fall (next stop)
-       gets its own linear pace. */
-    animation-timing-function: cubic-bezier(0.15, 0.8, 0.25, 1);
-  }
-  18% {
-    /* Peak: overshoots almost to the top of the page (past the result
-       title) before gravity takes over. */
-    transform: translate(calc(var(--dx) * 0.7), -88vh) rotate(calc(var(--rot) * 0.35));
-    opacity: 1;
-    animation-timing-function: linear;
-  }
-  100% {
-    /* Ends at page-center, not back at the bottom — pieces fade out mid-fall,
-       they never complete the trip back down. */
-    transform: translate(var(--dx), -50vh) rotate(var(--rot));
-    opacity: 0;
   }
 }
 

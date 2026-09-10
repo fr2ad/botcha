@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 // Decorative only — the violet wash plus a few drifting particles that keep a
@@ -34,33 +35,40 @@ export function Ambient({ washTop = -120 }: { washTop?: number }) {
   );
 }
 
-const CONFETTI_COLORS = ['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--pink)', 'var(--blue)', 'var(--accent-2)'];
-
-// Two cannons firing from the bottom corners, overshooting almost to the top
-// of the page (past the "You caught the bot!" title), then falling back
-// slowly and fading out by the time they reach page-center — they never
-// reach the bottom again. dx/rot vary per piece so the burst fans out
-// instead of every piece tracing the same line; the shared cannonBurst
-// keyframe (index.css) reads them off --dx/--rot custom properties. dx
-// reaches well past screen center (.screen caps at 430px, so half-width is
-// ~215px) so the two plumes visibly cross overhead.
-function cannonPieces(side: 'left' | 'right', count: number) {
-  const sign = side === 'left' ? 1 : -1;
-  return Array.from({ length: count }, (_, i) => ({
-    side,
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    size: 6 + (i % 3) * 2,
-    bottom: (i % 5) * 5,
-    dx: sign * (150 + (i % 8) * 30),
-    rot: sign * (360 + (i % 4) * 180),
-    dur: 3.2 + (i % 6) * 0.13,
-    delay: (i % 10) * 0.04
-  }));
-}
-
-const CONFETTI = [...cannonPieces('left', 22), ...cannonPieces('right', 22)];
-
+// Hand-authored Lottie asset (public/confetti-lottie.json): two cannon
+// bursts plus a center flash, exported at 1827x2436 — fetched at mount
+// (not bundled) since it's a one-shot 64KB asset only needed on a win.
 export function Confetti() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let anim: import('lottie-web').AnimationItem | undefined;
+    let cancelled = false;
+    // Dynamic import — lottie-web (~165KB) is only needed for this one-shot
+    // win screen, not worth adding to every page's initial bundle.
+    import('lottie-web/build/player/lottie_light').then(({ default: lottie }) => {
+      if (cancelled || !containerRef.current) return;
+      anim = lottie.loadAnimation({
+        container: containerRef.current,
+        renderer: 'svg',
+        loop: false,
+        autoplay: true,
+        path: '/confetti-lottie.json',
+        rendererSettings: {
+          // The source asset is a tall 1827x2436 canvas that doesn't match a
+          // phone's aspect ratio, so it letterboxes either way — default
+          // centering ('xMidYMid') put the burst around the vertical middle.
+          // Anchoring to the top instead keeps it up near the result title.
+          preserveAspectRatio: 'xMidYMin meet'
+        }
+      });
+    });
+    return () => {
+      cancelled = true;
+      anim?.destroy();
+    };
+  }, []);
+
   // Portaled to <body>, not rendered in place: .screen plays a transform-
   // based entrance animation on mount (screenIn), and a `position: fixed`
   // descendant of an element with an active transform is fixed relative to
@@ -68,25 +76,7 @@ export function Confetti() {
   // to a small band inside .screen instead of covering the real screen.
   // Escaping to body via a portal sidesteps that entirely.
   return createPortal(
-    <div aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
-      {CONFETTI.map((c, i) => (
-        <span
-          key={i}
-          className="confetti"
-          style={{
-            top: 'auto',
-            bottom: c.bottom,
-            [c.side]: -10,
-            width: c.size,
-            height: c.size * 1.6,
-            background: c.color,
-            ['--dx' as string]: `${c.dx}px`,
-            ['--rot' as string]: `${c.rot}deg`,
-            animation: `cannonBurst ${c.dur}s linear ${c.delay}s both`
-          }}
-        />
-      ))}
-    </div>,
+    <div ref={containerRef} aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1 }} />,
     document.body
   );
 }
