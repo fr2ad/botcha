@@ -138,7 +138,8 @@ export function Table() {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: i < state.round ? 'var(--accent)' : 'rgba(255,255,255,.15)'
+                  background: i < state.round ? 'var(--accent)' : 'rgba(255,255,255,.15)',
+                  transition: 'background .3s ease'
                 }}
               />
             ))}
@@ -179,9 +180,13 @@ export function Table() {
               }}
             >
               {active && state.turnDeadline ? (
-                <CountdownRing deadline={state.turnDeadline} totalMs={TURN_WINDOW_MS} size={64} color={seat.color} />
+                <span key="ring" className="pop">
+                  <CountdownRing deadline={state.turnDeadline} totalMs={TURN_WINDOW_MS} size={50} color={seat.color} />
+                </span>
               ) : (
-                <SeatAvatar codeName={seat.codeName} color={seat.color} size={50} />
+                <span key="avatar" className="pop">
+                  <SeatAvatar codeName={seat.codeName} color={seat.color} size={50} />
+                </span>
               )}
               <span
                 style={{

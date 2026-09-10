@@ -34,10 +34,13 @@ export function Ambient({ washTop = -120 }: { washTop?: number }) {
 
 const CONFETTI_COLORS = ['var(--accent)', 'var(--green)', 'var(--amber)', 'var(--pink)', 'var(--blue)', 'var(--accent-2)'];
 
-// Two cannons firing from the bottom corners toward the middle, not a
-// top-down drizzle — dx/rot vary per piece so the burst fans out instead of
-// every piece tracing the same line; the shared cannonBurst keyframe (index.css)
-// reads them off --dx/--rot custom properties.
+// Two cannons firing from the bottom corners and converging toward top-middle
+// (not a top-down drizzle, not two isolated corner puffs) before gravity
+// pulls everything back down across the full screen — dx/rot vary per piece
+// so the burst fans out instead of every piece tracing the same line; the
+// shared cannonBurst keyframe (index.css) reads them off --dx/--rot custom
+// properties. dx reaches well past screen center (.screen caps at 430px, so
+// half-width is ~215px) so the two plumes visibly cross overhead.
 function cannonPieces(side: 'left' | 'right', count: number) {
   const sign = side === 'left' ? 1 : -1;
   return Array.from({ length: count }, (_, i) => ({
@@ -45,14 +48,14 @@ function cannonPieces(side: 'left' | 'right', count: number) {
     color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
     size: 6 + (i % 3) * 2,
     bottom: (i % 5) * 5,
-    dx: sign * (90 + (i % 6) * 24),
+    dx: sign * (150 + (i % 8) * 30),
     rot: sign * (360 + (i % 4) * 180),
-    dur: 1.2 + (i % 5) * 0.12,
-    delay: (i % 6) * 0.04
+    dur: 1.5 + (i % 6) * 0.15,
+    delay: (i % 10) * 0.035
   }));
 }
 
-const CONFETTI = [...cannonPieces('left', 14), ...cannonPieces('right', 14)];
+const CONFETTI = [...cannonPieces('left', 22), ...cannonPieces('right', 22)];
 
 export function Confetti() {
   return (

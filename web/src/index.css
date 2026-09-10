@@ -26,6 +26,11 @@
   --glow: 0 0 28px rgba(124, 110, 246, 0.5);
   --font-head: 'Fredoka', sans-serif;
   --font-body: 'Nunito', sans-serif;
+
+  /* Shared entrance curves — every screen/list/sheet/modal entrance draws
+     from one of these two rather than hand-typing a near-identical bezier. */
+  --ease-rise: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 @property --p {
@@ -98,7 +103,7 @@ a {
   overflow: hidden;
   /* viewport-fit=cover is set in index.html, so keep clear of the notch/home bar. */
   padding: env(safe-area-inset-top) 24px calc(26px + env(safe-area-inset-bottom));
-  animation: screenIn 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: screenIn 0.34s var(--ease-rise) both;
 }
 
 .topnav {
@@ -161,12 +166,16 @@ a {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .btn-outline:hover:not(:disabled) {
   border-color: rgba(124, 110, 246, 0.5);
   color: var(--text-1);
+}
+
+.btn-outline:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn-text {
@@ -190,6 +199,11 @@ a {
   color: var(--text-2);
   font-size: 16px;
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .chip {
@@ -260,7 +274,7 @@ a {
   border-radius: 28px 28px 0 0;
   padding: 14px 26px 30px;
   box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.6);
-  animation: sheetUp 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: sheetUp 0.34s var(--ease-sheet) both;
 }
 
 .sheet-grab {
@@ -282,7 +296,7 @@ a {
   border-radius: 26px;
   padding: 28px 26px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
-  animation: modalIn 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: modalIn 0.28s var(--ease-sheet) both;
 }
 
 .blurred {
@@ -332,7 +346,7 @@ a {
 /* --stagger keeps long lists from trickling: 60ms reads well up to ~8 items,
    but a 15-item grid needs to be tightened or the tail arrives a second late. */
 .rise {
-  animation: riseIn 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: riseIn 0.4s var(--ease-rise) both;
   animation-delay: calc(var(--i, 0) * var(--stagger, 60ms));
 }
 
@@ -472,18 +486,19 @@ a {
 }
 
 /* Confetti cannon burst — --dx/--rot are set per piece (Ambient.tsx). The
-   35% mid-step is the arc's peak (up and partway across) before it falls
-   the rest of the way; vh keeps the arc proportional to viewport height. */
+   45% mid-step is the arc's peak: both cannons' pieces converge near top-
+   middle there (large --dx crosses well past screen center) before gravity
+   pulls them back down; vh keeps the arc proportional to viewport height. */
 @keyframes cannonBurst {
   0% {
     transform: translate(0, 0) rotate(0deg);
     opacity: 1;
   }
-  35% {
-    transform: translate(calc(var(--dx) * 0.55), -18vh) rotate(calc(var(--rot) * 0.4));
+  20% {
+    transform: translate(calc(var(--dx) * 0.7), -62vh) rotate(calc(var(--rot) * 0.55));
   }
   100% {
-    transform: translate(var(--dx), 32vh) rotate(var(--rot));
+    transform: translate(var(--dx), 14vh) rotate(var(--rot));
     opacity: 0;
   }
 }

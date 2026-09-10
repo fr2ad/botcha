@@ -62,7 +62,7 @@ export function UpdateBanner() {
         borderRadius: 16,
         padding: '10px 10px 10px 16px',
         boxShadow: '0 12px 40px rgba(0,0,0,.5)',
-        animation: 'sheetUp .3s cubic-bezier(0.2,0.8,0.3,1) both'
+        animation: 'sheetUp .3s var(--ease-sheet) both'
       }}
     >
       <span style={{ flex: 1, fontSize: 12.5, color: 'var(--text-2)', fontWeight: 700 }}>
