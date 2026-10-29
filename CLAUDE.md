@@ -71,6 +71,6 @@ Firebase is opt-in throughout, same pattern as `OPENROUTER_API_KEY`: unset confi
 
 ## Deployment
 
-Live at `botcha.far2ad.space` on a single VPS behind the provider's HAProxy panel (not a normal reverse proxy). This repo is being prepared to go public, so the runbook with the host, SSH access, and box layout lives outside it, in the private parent repo: `../docs/botcha-deploy.md`. Read it before touching prod.
+Live at `botcha.far2ad.space` on a single VPS behind the provider's HAProxy panel (not a normal reverse proxy). This repo is public, so the runbook with the host, SSH access, and box layout lives outside it, in the private parent repo: `../docs/botcha-deploy.md`. Read it before touching prod.
 
 Short version: push to `main`, fast-forward pull on the box, then reinstall+restart only the half that changed — server via systemd unit `botcha`, web via rebuild + nginx static. `BOT_TEST` must stay unset there.
